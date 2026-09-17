@@ -25,16 +25,26 @@
 
         /* Estilização para PDF/Impressão */
         @media print {
-            @page { margin: 1cm; }
-            body { background-color: white !important; }
-            aside { display: none !important; }
-            main { margin: 0 !important; padding: 0 !important; width: 100% !important; }
-            header button, header .bg-slate-100 { display: none !important; }
-            .bg-slate-50 { background-color: white !important; }
-            .rounded-xl, .shadow-sm { box-shadow: none !important; border: 1px solid #e2e8f0 !important; border-radius: 0 !important; }
-            input, .bg-blue-600 { display: none !important; }
-            th:last-child, td:last-child { display: none !important; } 
-            .text-slate-500 { color: #333 !important; }
+    /* Mantenha as regras que já ocultam botões e menus (sidebar, btn, etc) */
+
+    /* Adicione estas regras para a tabela */
+    table {
+        page-break-inside: auto;
+    }
+    
+    tr {
+        page-break-inside: avoid !important; /* Impede que a linha seja cortada ao meio */
+        page-break-after: auto;
+    }
+    
+    thead {
+        display: table-header-group !important; /* Repete o cabeçalho em todas as páginas impressas */
+    }
+    
+    tbody {
+        page-break-inside: auto;
+    }
+}
         }
     </style>
 </head>
