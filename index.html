@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Analog - Gestão de Térmicas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS (Para Exportação Excel) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .modal-enter { animation: modalFadeIn 0.2s ease-out forwards; }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Estilização para PDF/Impressão */
+        @media print {
+            @page { margin: 1cm; }
+            body { background-color: white !important; }
+            aside { display: none !important; }
+            main { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+            header button, header .bg-slate-100 { display: none !important; }
+            .bg-slate-50 { background-color: white !important; }
+            .rounded-xl, .shadow-sm { box-shadow: none !important; border: 1px solid #e2e8f0 !important; border-radius: 0 !important; }
+            input, .bg-blue-600 { display: none !important; }
+            th:last-child, td:last-child { display: none !important; } 
+            .text-slate-500 { color: #333 !important; }
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row h-screen bg-slate-50 text-slate-800 antialiased overflow-hidden">
+
+    <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 overflow-y-auto z-10 shadow-xl">
+        <div class="h-16 flex items-center px-6 bg-slate-950 text-white font-bold text-xl tracking-wide gap-3">
+            <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+            ANALOG
+        </div>
+        <nav class="flex-1 py-4 flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible gap-1 px-3">
+            <button onclick="mudarAba('dashboard')" id="menu-dashboard" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors bg-blue-600 text-white shadow-md">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                <span class="whitespace-nowrap">Dashboard</span>
+            </button>
+            <button onclick="mudarAba('termicas')" id="menu-termicas" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800 hover:text-slate-100">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <span class="whitespace-nowrap">Térmicas</span>
+            </button>
+            <button onclick="mudarAba('colaboradores')" id="menu-colaboradores" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800 hover:text-slate-100">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <span class="whitespace-nowrap">Colaboradores</span>
+            </button>
+            <button onclick="mudarAba('clientes')" id="menu-clientes" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800 hover:text-slate-100">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                <span class="whitespace-nowrap">Clientes</span>
+            </button>
+            <button onclick="mudarAba('rastreio')" id="menu-rastreio" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800 hover:text-slate-100">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                <span class="whitespace-nowrap">Entregas & Rastreio</span>
+            </button>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 bg-slate-50 relative">
+        <!-- Spinner de Carregamento Nuvem -->
+        <div id="loading-overlay" class="absolute inset-0 bg-slate-50/80 backdrop-blur-sm z-40 flex flex-col items-center justify-center hidden">
+            <svg class="animate-spin h-10 w-10 text-blue-600 mb-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p class="text-slate-600 font-medium animate-pulse">Sincronizando com a Nuvem...</p>
+        </div>
+
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-0">
+            <h2 id="titulo-pagina" class="text-xl font-bold text-slate-800">Dashboard</h2>
+            <div class="flex items-center gap-2 md:gap-4">
+                <div id="cloud-status" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-xs font-semibold text-emerald-600 shadow-sm" title="Conectado ao Firebase">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Conectado
+                </div>
+                <button onclick="imprimirPDF()" class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center" title="Imprimir / Salvar PDF">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                </button>
+                <button onclick="exportarExcel()" class="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors flex items-center justify-center" title="Exportar Tabela para Excel">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </button>
+                <div class="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-2 rounded-full hidden sm:flex items-center gap-2">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span id="data-atual"></span>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view-section block space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                        <h4 class="text-slate-500 font-medium text-sm">Total de Térmicas</h4>
+                        <p id="dash-total" class="text-3xl font-bold text-slate-800 mt-2">-</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border-l-4 border-emerald-500 border-y border-r border-slate-200 shadow-sm flex flex-col">
+                        <h4 class="text-slate-500 font-medium text-sm">Disponíveis</h4>
+                        <p id="dash-disp" class="text-3xl font-bold text-emerald-600 mt-2">-</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border-l-4 border-blue-500 border-y border-r border-slate-200 shadow-sm flex flex-col">
+                        <h4 class="text-slate-500 font-medium text-sm">Em Uso</h4>
+                        <p id="dash-uso" class="text-3xl font-bold text-blue-600 mt-2">-</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border-l-4 border-rose-500 border-y border-r border-slate-200 shadow-sm flex flex-col">
+                        <h4 class="text-slate-500 font-medium text-sm">Avariadas</h4>
+                        <p id="dash-ava" class="text-3xl font-bold text-rose-600 mt-2">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Térmicas View -->
+            <div id="view-termicas" class="view-section hidden space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between gap-4">
+                    <div class="relative max-w-md w-full opacity-0"></div> <!-- Placeholder Espaço -->
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium shadow-sm flex items-center justify-center gap-2 transition-colors whitespace-nowrap" onclick="abrirModalTermica()">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Nova Térmica
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                                <th class="px-6 py-4">Código</th><th class="px-6 py-4">Status</th><th class="px-6 py-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-termicas" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Clientes View -->
+            <div id="view-clientes" class="view-section hidden space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between gap-4">
+                    <div class="relative max-w-md w-full opacity-0"></div>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium shadow-sm flex items-center justify-center gap-2 transition-colors whitespace-nowrap" onclick="abrirModalCliente()">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Novo Cliente
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                                <th class="px-6 py-4">Empresa/Nome</th><th class="px-6 py-4">Endereço</th><th class="px-6 py-4">Contato</th><th class="px-6 py-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-clientes" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Colaboradores View -->
+            <div id="view-colaboradores" class="view-section hidden space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between gap-4">
+                    <div class="relative max-w-md w-full opacity-0"></div>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium shadow-sm flex items-center justify-center gap-2 transition-colors whitespace-nowrap" onclick="abrirModalColab()">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Novo Colaborador
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                                <th class="px-6 py-4">Nome</th><th class="px-6 py-4">Placa/Veículo</th><th class="px-6 py-4">Telefone</th><th class="px-6 py-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-colaboradores" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Rastreio View -->
+            <div id="view-rastreio" class="view-section hidden space-y-4">
+                <div class="flex justify-end gap-4">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium shadow-sm flex items-center justify-center gap-2 transition-colors" onclick="abrirModalAlocacao()">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg> Alocar Térmica (Saída)
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                                <th class="px-6 py-4">Térmica</th><th class="px-6 py-4">Motorista</th><th class="px-6 py-4">Cliente</th><th class="px-6 py-4">Data Saída</th><th class="px-6 py-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-rastreio" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    
+    <!-- Modal Cliente -->
+    <div id="modal-cliente" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden modal-enter">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 id="modal-cliente-titulo" class="font-bold text-lg text-slate-800">Novo Cliente</h3>
+                <button onclick="fecharModal('modal-cliente')" class="text-slate-400 hover:text-slate-600 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">Empresa/Nome</label><input type="text" id="cli-nome" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">Endereço</label><input type="text" id="cli-end" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">Contato</label><input type="text" id="cli-contato" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <button class="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-200 transition-colors" onclick="fecharModal('modal-cliente')">Cancelar</button>
+                <button class="px-5 py-2 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm" onclick="salvarCliente()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Térmica -->
+    <div id="modal-termica" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden modal-enter">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 id="modal-termica-titulo" class="font-bold text-lg text-slate-800">Nova Térmica</h3>
+                <button onclick="fecharModal('modal-termica')" class="text-slate-400 hover:text-slate-600 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Código (Prefixo Fixo + Número)</label>
+                    <div class="flex gap-2">
+                        <input type="text" value="ANALOG-" disabled class="w-28 border border-slate-300 rounded-lg px-3 py-2.5 bg-slate-100 text-slate-500 font-medium cursor-not-allowed">
+                        <input type="number" id="term-numero" class="flex-1 border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Status</label>
+                    <select id="term-status" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                        <option value="Disponível">Disponível</option><option value="Em Uso">Em Uso</option><option value="Avariada">Avariada</option>
+                    </select>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <button class="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-200 transition-colors" onclick="fecharModal('modal-termica')">Cancelar</button>
+                <button class="px-5 py-2 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm" onclick="salvarTermica()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Colaborador -->
+    <div id="modal-colab" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden modal-enter">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 id="modal-colab-titulo" class="font-bold text-lg text-slate-800">Novo Colaborador</h3>
+                <button onclick="fecharModal('modal-colab')" class="text-slate-400 hover:text-slate-600 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">Nome</label><input type="text" id="colab-nome" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">Placa/Veículo</label><input type="text" id="colab-veiculo" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">Telefone</label><input type="text" id="colab-tel" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <button class="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-200 transition-colors" onclick="fecharModal('modal-colab')">Cancelar</button>
+                <button class="px-5 py-2 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm" onclick="salvarColab()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Alocação -->
+    <div id="modal-alocacao" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden modal-enter">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-lg text-slate-800">Registrar Saída de Térmica</h3>
+                <button onclick="fecharModal('modal-alocacao')" class="text-slate-400 hover:text-slate-600 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">Térmica (Disponíveis)</label><select id="aloc-termica" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 bg-white"></select></div>
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">Motorista</label><select id="aloc-colab" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 bg-white"></select></div>
+                <div><label class="block text-sm font-semibold text-slate-700 mb-1">Cliente Destino</label><select id="aloc-cliente" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 bg-white"></select></div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <button class="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-200 transition-colors" onclick="fecharModal('modal-alocacao')">Cancelar</button>
+                <button class="px-5 py-2 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm" onclick="salvarAlocacao()">Confirmar Saída</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mensagem/Alerta -->
+    <div id="modal-mensagem" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden modal-enter text-center">
+            <div class="p-6">
+                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h3 id="msg-titulo" class="font-bold text-lg text-slate-800 mb-2">Aviso</h3>
+                <p id="msg-texto" class="text-slate-600 text-sm mb-6"></p>
+                <div class="flex justify-center gap-3">
+                    <button id="btn-msg-cancel" class="px-5 py-2 rounded-lg font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors hidden" onclick="fecharModal('modal-mensagem')">Cancelar</button>
+                    <button id="btn-msg-ok" class="px-5 py-2 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm" onclick="fecharModal('modal-mensagem')">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =====================================================================
+        // ⚠️ CONFIGURAÇÃO DO SEU FIREBASE (PARA O GITHUB)
+        // Substitua os dados abaixo pelos que o Firebase gerar para você!
+        // =====================================================================
+        let firebaseConfig = {
+            apiKey: "AIzaSyA9HLPcKSvrhbjUNj4kPSmpMZVUAf5os5I",
+            authDomain: "controle-de-ter.firebaseapp.com",
+            projectId: "controle-de-ter",
+            storageBucket: "controle-de-ter.firebasestorage.app",
+            messagingSenderId: "762391553662",
+            appId: "1:762391553662:web:0aab6851ce7e8d6d60da2f",
+            measurementId: "G-MT3QET384E"
+        };
+
+        // Mantém a compatibilidade de visualização em ambientes sandboxed (Apenas segurança)
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Sistema de Rotas/Paths Dinâmicos para o Banco de Dados
+        function getCollectionPath(collectionName) {
+            // Se estiver rodando dentro do visualizador web de testes, obedece as regras do diretório
+            if (typeof __app_id !== 'undefined') {
+                return `artifacts/${__app_id}/public/data/${collectionName}`;
+            }
+            // Quando rodar no SEU Github e Firebase, salvará nas coleções principais limpas.
+            return collectionName;
+        }
+
+        // Variáveis Locais de Cache (Recebem dados do Firebase)
+        let clientes = [];
+        let termicas = [];
+        let colaboradores = [];
+        let rastreios = [];
+        let authReady = false;
+
+        let idEdicaoCliente = null;
+        let idEdicaoTermica = null;
+        let idEdicaoColab = null;
+
+        // Inicializa a Autenticação no Firebase (Obrigatório para ler/gravar)
+        async function initSystem() {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            
+            try {
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth); // Login anônimo configurado no Firebase
+                }
+                authReady = true;
+                setupRealtimeListeners();
+            } catch (error) {
+                console.error("Erro ao autenticar no Firebase:", error);
+                document.getElementById('loading-overlay').classList.add('hidden');
+                customAlert("Erro de conexão. Verifique a configuração do seu Firebase.");
+            }
+        }
+
+        // Conecta ao banco em TEMPO REAL
+        function setupRealtimeListeners() {
+            if (!authReady) return;
+
+            const onDataUpdate = () => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+                atualizarTelas();
+            };
+
+            onSnapshot(collection(db, getCollectionPath('clientes')), (snap) => {
+                clientes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); onDataUpdate();
+            }, (err) => console.error(err));
+
+            onSnapshot(collection(db, getCollectionPath('termicas')), (snap) => {
+                termicas = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); onDataUpdate();
+            }, (err) => console.error(err));
+
+            onSnapshot(collection(db, getCollectionPath('colaboradores')), (snap) => {
+                colaboradores = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); onDataUpdate();
+            }, (err) => console.error(err));
+
+            onSnapshot(collection(db, getCollectionPath('rastreios')), (snap) => {
+                rastreios = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); onDataUpdate();
+            }, (err) => console.error(err));
+        }
+
+        // ====================== MÉTODOS FIREBASE EXPORTADOS PARA O HTML ======================
+        // Como usamos type="module", precisamos pendurar as funções no objeto 'window'
+        
+        window.mudarAba = function(abaId) {
+            document.querySelectorAll('.view-section').forEach(v => { v.classList.add('hidden'); v.classList.remove('block'); });
+            document.getElementById(`view-${abaId}`).classList.remove('hidden');
+            document.getElementById(`view-${abaId}`).classList.add('block');
+            document.querySelectorAll('.menu-item').forEach(m => {
+                m.className = "menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-800 hover:text-slate-100";
+            });
+            document.getElementById(`menu-${abaId}`).className = "menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors bg-blue-600 text-white shadow-md";
+            const titulos = { 'dashboard': 'Dashboard', 'termicas': 'Gestão de Térmicas', 'clientes': 'Gestão de Clientes', 'colaboradores': 'Gestão de Colaboradores', 'rastreio': 'Entregas e Rastreio' };
+            document.getElementById('titulo-pagina').innerText = titulos[abaId];
+        };
+
+        // Clientes Cloud
+        window.abrirModalCliente = function(id = null) {
+            idEdicaoCliente = id;
+            if (id) {
+                const c = clientes.find(x => x.id === id);
+                document.getElementById('cli-nome').value = c.nome;
+                document.getElementById('cli-end').value = c.endereco;
+                document.getElementById('cli-contato').value = c.contato;
+                document.getElementById('modal-cliente-titulo').innerText = "Editar Cliente";
+            } else {
+                document.getElementById('cli-nome').value = '';
+                document.getElementById('cli-end').value = '';
+                document.getElementById('cli-contato').value = '';
+                document.getElementById('modal-cliente-titulo').innerText = "Novo Cliente";
+            }
+            document.getElementById('modal-cliente').classList.remove('hidden');
+        };
+
+        window.salvarCliente = async function() {
+            if(!authReady) return;
+            const nome = document.getElementById('cli-nome').value;
+            const endereco = document.getElementById('cli-end').value;
+            const contato = document.getElementById('cli-contato').value;
+            if(!nome) return customAlert('Nome é obrigatório');
+
+            const colRef = collection(db, getCollectionPath('clientes'));
+            if (idEdicaoCliente) {
+                await updateDoc(doc(db, getCollectionPath('clientes'), idEdicaoCliente), { nome, endereco, contato });
+            } else {
+                await addDoc(colRef, { nome, endereco, contato });
+            }
+            fecharModal('modal-cliente');
+        };
+
+        window.excluirCliente = function(id) {
+            customConfirm("Tem certeza que deseja excluir este cliente na nuvem?", async () => {
+                await deleteDoc(doc(db, getCollectionPath('clientes'), id));
+            });
+        };
+
+        // Térmicas Cloud
+        window.abrirModalTermica = function(id = null) {
+            idEdicaoTermica = id;
+            const inputNum = document.getElementById('term-numero');
+            if (id) {
+                const t = termicas.find(x => x.id === id);
+                inputNum.value = t.codigo.replace('ANALOG-', '');
+                inputNum.disabled = true;
+                document.getElementById('term-status').value = t.status;
+                document.getElementById('modal-termica-titulo').innerText = "Editar Térmica";
+            } else {
+                const maxNum = termicas.length > 0 ? Math.max(...termicas.map(t => parseInt(t.codigo.replace('ANALOG-', '')) || 1000)) : 1000;
+                inputNum.value = maxNum + 1;
+                inputNum.disabled = false;
+                document.getElementById('term-status').value = 'Disponível';
+                document.getElementById('modal-termica-titulo').innerText = "Nova Térmica";
+            }
+            document.getElementById('modal-termica').classList.remove('hidden');
+        };
+
+        window.salvarTermica = async function() {
+            if(!authReady) return;
+            const num = document.getElementById('term-numero').value;
+            const status = document.getElementById('term-status').value;
+            const codigo = `ANALOG-${num}`;
+
+            if (!idEdicaoTermica && termicas.some(t => t.codigo === codigo)) return customAlert('Este código já existe!');
+
+            if (idEdicaoTermica) {
+                await updateDoc(doc(db, getCollectionPath('termicas'), idEdicaoTermica), { status });
+            } else {
+                await addDoc(collection(db, getCollectionPath('termicas')), { codigo, status });
+            }
+            fecharModal('modal-termica');
+        };
+
+        window.excluirTermica = function(id) {
+            customConfirm("Excluir térmica do banco de dados?", async () => {
+                await deleteDoc(doc(db, getCollectionPath('termicas'), id));
+            });
+        };
+
+        // Colaboradores Cloud
+        window.abrirModalColab = function(id = null) {
+            idEdicaoColab = id;
+            if (id) {
+                const c = colaboradores.find(x => x.id === id);
+                document.getElementById('colab-nome').value = c.nome;
+                document.getElementById('colab-veiculo').value = c.veiculo;
+                document.getElementById('colab-tel').value = c.telefone;
+                document.getElementById('modal-colab-titulo').innerText = "Editar Colaborador";
+            } else {
+                document.getElementById('colab-nome').value = ''; document.getElementById('colab-veiculo').value = ''; document.getElementById('colab-tel').value = '';
+                document.getElementById('modal-colab-titulo').innerText = "Novo Colaborador";
+            }
+            document.getElementById('modal-colab').classList.remove('hidden');
+        };
+
+        window.salvarColab = async function() {
+            if(!authReady) return;
+            const nome = document.getElementById('colab-nome').value;
+            const veiculo = document.getElementById('colab-veiculo').value;
+            const telefone = document.getElementById('colab-tel').value;
+            if(!nome) return customAlert('Nome é obrigatório');
+
+            if (idEdicaoColab) {
+                await updateDoc(doc(db, getCollectionPath('colaboradores'), idEdicaoColab), { nome, veiculo, telefone });
+            } else {
+                await addDoc(collection(db, getCollectionPath('colaboradores')), { nome, veiculo, telefone });
+            }
+            fecharModal('modal-colab');
+        };
+
+        window.excluirColab = function(id) {
+            customConfirm("Excluir colaborador?", async () => {
+                await deleteDoc(doc(db, getCollectionPath('colaboradores'), id));
+            });
+        };
+
+        // Rastreio Cloud
+        window.abrirModalAlocacao = function() {
+            const selTermica = document.getElementById('aloc-termica');
+            const selColab = document.getElementById('aloc-colab');
+            const selCliente = document.getElementById('aloc-cliente');
+            
+            selTermica.innerHTML = termicas.filter(t => t.status === 'Disponível').map(t => `<option value="${t.id}">${t.codigo}</option>`).join('');
+            selColab.innerHTML = colaboradores.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+            selCliente.innerHTML = clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+            
+            if(!selTermica.innerHTML) return customAlert('Nenhuma térmica Disponível no momento!');
+            if(!selColab.innerHTML) return customAlert('Cadastre um colaborador primeiro!');
+            if(!selCliente.innerHTML) return customAlert('Cadastre um cliente primeiro!');
+
+            document.getElementById('modal-alocacao').classList.remove('hidden');
+        };
+
+        window.salvarAlocacao = async function() {
+            if(!authReady) return;
+            const idTerm = document.getElementById('aloc-termica').value;
+            const idColab = document.getElementById('aloc-colab').value;
+            const idCli = document.getElementById('aloc-cliente').value;
+
+            // 1. Atualizar Térmica
+            await updateDoc(doc(db, getCollectionPath('termicas'), idTerm), { status: 'Em Uso' });
+            
+            // 2. Registrar Rastreio
+            await addDoc(collection(db, getCollectionPath('rastreios')), {
+                termica_id: idTerm,
+                codigo: termicas.find(t => t.id === idTerm).codigo,
+                colab_nome: colaboradores.find(c => c.id === idColab).nome,
+                cliente_nome: clientes.find(c => c.id === idCli).nome,
+                data_saida: new Date().toLocaleString('pt-BR')
+            });
+            fecharModal('modal-alocacao');
+        };
+
+        window.registrarRetorno = function(idRastreio, idTermica) {
+            customConfirm("Confirmar o retorno desta térmica ao galpão?", async () => {
+                await deleteDoc(doc(db, getCollectionPath('rastreios'), idRastreio));
+                await updateDoc(doc(db, getCollectionPath('termicas'), idTermica), { status: 'Disponível' });
+            });
+        };
+
+        window.excluirRastreio = function(idRastreio, idTermica) {
+            customConfirm("Excluir este registro de rastreio permanentemente?", async () => {
+                await deleteDoc(doc(db, getCollectionPath('rastreios'), idRastreio));
+                await updateDoc(doc(db, getCollectionPath('termicas'), idTermica), { status: 'Disponível' });
+            });
+        };
+
+        // ====================== UTILITÁRIOS GERAIS E RENDERIZAÇÃO ======================
+        
+        window.fecharModal = function(id) { document.getElementById(id).classList.add('hidden'); };
+        window.customAlert = function(msg) {
+            document.getElementById('msg-titulo').innerText = 'Aviso'; document.getElementById('msg-texto').innerText = msg;
+            document.getElementById('btn-msg-cancel').classList.add('hidden');
+            document.getElementById('btn-msg-ok').onclick = () => fecharModal('modal-mensagem');
+            document.getElementById('modal-mensagem').classList.remove('hidden');
+        };
+        window.customConfirm = function(msg, callback) {
+            document.getElementById('msg-titulo').innerText = 'Confirmação'; document.getElementById('msg-texto').innerText = msg;
+            document.getElementById('btn-msg-cancel').classList.remove('hidden');
+            document.getElementById('btn-msg-ok').onclick = () => { fecharModal('modal-mensagem'); if(callback) callback(); };
+            document.getElementById('modal-mensagem').classList.remove('hidden');
+        };
+
+        function getBadge(status) {
+            if(status === 'Disponível') return `<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">Disponível</span>`;
+            if(status === 'Em Uso') return `<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">Em Uso</span>`;
+            return `<span class="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-bold">Avariada</span>`;
+        }
+
+        const iconEdit = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`;
+        const iconTrash = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+        const iconReturn = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>`;
+
+        function atualizarTelas() {
+            document.getElementById('tabela-clientes').innerHTML = clientes.map(c => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-medium text-slate-800">${c.nome}</td><td class="px-6 py-4 text-slate-600">${c.endereco}</td><td class="px-6 py-4 text-slate-600">${c.contato}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button title="Editar" class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors mr-2" onclick="abrirModalCliente('${c.id}')">${iconEdit}</button>
+                        <button title="Excluir" class="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors" onclick="excluirCliente('${c.id}')">${iconTrash}</button>
+                    </td>
+                </tr>`).join('') || `<tr><td colspan="4" class="text-center py-6 text-slate-500">Nenhum cliente cadastrado.</td></tr>`;
+
+            document.getElementById('tabela-termicas').innerHTML = termicas.map(t => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-bold text-slate-800">${t.codigo}</td><td class="px-6 py-4">${getBadge(t.status)}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button title="Editar" class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors mr-2" onclick="abrirModalTermica('${t.id}')">${iconEdit}</button>
+                        <button title="Excluir" class="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors" onclick="excluirTermica('${t.id}')">${iconTrash}</button>
+                    </td>
+                </tr>`).join('') || `<tr><td colspan="3" class="text-center py-6 text-slate-500">Nenhuma térmica cadastrada.</td></tr>`;
+
+            document.getElementById('tabela-colaboradores').innerHTML = colaboradores.map(c => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-medium text-slate-800">${c.nome}</td><td class="px-6 py-4 text-slate-600">${c.veiculo}</td><td class="px-6 py-4 text-slate-600">${c.telefone}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button title="Editar" class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors mr-2" onclick="abrirModalColab('${c.id}')">${iconEdit}</button>
+                        <button title="Excluir" class="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors" onclick="excluirColab('${c.id}')">${iconTrash}</button>
+                    </td>
+                </tr>`).join('') || `<tr><td colspan="4" class="text-center py-6 text-slate-500">Nenhum colaborador cadastrado.</td></tr>`;
+
+            document.getElementById('tabela-rastreio').innerHTML = rastreios.map(r => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-bold text-slate-800">${r.codigo}</td><td class="px-6 py-4 text-slate-600">${r.colab_nome}</td><td class="px-6 py-4 text-slate-600">${r.cliente_nome}</td><td class="px-6 py-4 text-slate-600">${r.data_saida}</td>
+                    <td class="px-6 py-4 text-right flex justify-end gap-2">
+                        <button title="Baixa / Retorno da Térmica" class="px-3 py-1.5 flex items-center gap-1 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-lg transition-colors" onclick="registrarRetorno('${r.id}', '${r.termica_id}')">${iconReturn} Retorno</button>
+                        <button title="Excluir" class="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors" onclick="excluirRastreio('${r.id}', '${r.termica_id}')">${iconTrash}</button>
+                    </td>
+                </tr>`).join('') || `<tr><td colspan="5" class="text-center py-6 text-slate-500">Nenhum rastreio ativo.</td></tr>`;
+
+            document.getElementById('dash-total').innerText = termicas.length;
+            document.getElementById('dash-disp').innerText = termicas.filter(t => t.status === 'Disponível').length;
+            document.getElementById('dash-uso').innerText = termicas.filter(t => t.status === 'Em Uso').length;
+            document.getElementById('dash-ava').innerText = termicas.filter(t => t.status === 'Avariada').length;
+        }
+
+        window.exportarExcel = function() {
+            const activeView = document.querySelector('.view-section.block').id;
+            let data = []; let filename = 'relatorio.xlsx';
+            if(activeView === 'view-clientes') { data = clientes.map(c => ({ 'Empresa/Nome': c.nome, 'Endereço': c.endereco, 'Contato': c.contato })); filename = 'clientes_analog.xlsx'; } 
+            else if(activeView === 'view-termicas') { data = termicas.map(t => ({ 'Código': t.codigo, 'Status': t.status })); filename = 'termicas_analog.xlsx'; } 
+            else if(activeView === 'view-colaboradores') { data = colaboradores.map(c => ({ 'Nome': c.nome, 'Placa/Veículo': c.veiculo, 'Telefone': c.telefone })); filename = 'colaboradores_analog.xlsx'; } 
+            else if(activeView === 'view-rastreio') { data = rastreios.map(r => ({ 'Térmica': r.codigo, 'Motorista': r.colab_nome, 'Cliente': r.cliente_nome, 'Data Saída': r.data_saida })); filename = 'rastreio_analog.xlsx'; } 
+            else { return customAlert("A exportação não está disponível nesta tela."); }
+            if(data.length === 0) return customAlert("Não há dados para exportar.");
+            const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Dados"); XLSX.writeFile(wb, filename);
+        };
+        
+        window.imprimirPDF = function() { window.print(); };
+
+        document.getElementById('data-atual').innerText = new Date().toLocaleDateString('pt-BR');
+        
+        // Iniciar Processo de Banco de Dados
+        initSystem();
+    </script>
+</body>
+</html>
