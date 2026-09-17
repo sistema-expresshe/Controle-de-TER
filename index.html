@@ -4,350 +4,279 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema Analog - Gestão de Térmicas</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        :root {
+            --bg-dark: #1e293b;
+            --bg-darker: #0f172a;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text-light: #f8fafc;
+            --bg-light: #f1f5f9;
+            --border: #e2e8f0;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
-        /* Oculta views inativas */
+        body { display: flex; height: 100vh; background-color: var(--bg-light); color: #333; }
+
+        /* Sidebar */
+        .sidebar { width: 250px; background-color: var(--bg-dark); color: var(--text-light); display: flex; flex-direction: column; }
+        .logo { padding: 20px; font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; gap: 10px; background-color: var(--bg-darker); }
+        .menu { flex: 1; padding: 20px 0; }
+        .menu-item { padding: 15px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+        .menu-item:hover, .menu-item.active { background-color: var(--primary); }
+        
+        /* Main Content */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .header { background-color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .header h2 { color: var(--bg-darker); }
+        .content { padding: 20px; overflow-y: auto; flex: 1; }
+        
+        /* Views */
         .view { display: none; }
         .view.active { display: block; }
-        
-        /* Estilização da Lixeira (Hover) */
-        .btn-lixeira:hover { color: #ef4444; background-color: #fee2e2; }
-        .btn-edit:hover { color: #3b82f6; background-color: #dbeafe; }
 
-        /* ========= CORREÇÃO DE IMPRESSÃO (PDF) ========= */
-        @media print {
-            body { background-color: white !important; }
-            /* Oculta Sidebar, Botões, Buscas e Ações */
-            .sidebar, .export-btns, .controls, .acoes, button { display: none !important; }
-            /* Ajusta a largura principal */
-            .main { width: 100% !important; margin: 0 !important; padding: 0 !important; }
-            /* Remove sombras e bordas do card */
-            .card { box-shadow: none !important; border: none !important; margin: 0 !important; }
-            
-            /* Regras para não cortar a tabela na quebra de página */
-            table { page-break-inside: auto; width: 100%; border-collapse: collapse; }
-            tr { page-break-inside: avoid !important; page-break-after: auto; }
-            thead { display: table-header-group !important; background-color: #f1f5f9 !important; }
-            tbody { page-break-inside: auto; }
-            th, td { border: 1px solid #cbd5e1 !important; padding: 10px !important; color: black !important; }
-            
-            /* Ajusta cabeçalho da impressão */
-            .header { padding: 0 0 20px 0 !important; border-bottom: 2px solid #000 !important; margin-bottom: 20px !important; }
-        }
+        /* Controls (Search & Add) */
+        .controls { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .search-bar { padding: 10px; border: 1px solid var(--border); border-radius: 5px; width: 300px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+
+        /* Tables */
+        .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: #f8fafc; font-size: 0.85rem; color: #64748b; text-transform: uppercase; }
+        .acoes button { background: none; border: none; cursor: pointer; font-size: 1.2rem; margin: 0 5px; }
+
+        /* Badges */
+        .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; }
+        .badge-disponivel { background-color: #dcfce7; color: #166534; }
+        .badge-uso { background-color: #dbeafe; color: #1e40af; }
+        .badge-avariada { background-color: #fee2e2; color: #991b1b; }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 400px; }
+        .modal-content h3 { margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background-color: var(--border); color: #333; }
+
+        /* Dashboard Cards */
+        .dash-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+        .dash-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); }
+        .dash-card h4 { color: #64748b; font-size: 0.9rem; }
+        .dash-card p { font-size: 1.8rem; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-800">
+<body>
 
     <!-- Sidebar -->
-    <aside class="sidebar w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300">
-        <div class="h-16 flex items-center px-6 bg-slate-950 text-white font-bold text-xl gap-3">
-            📦 ANALOG
+    <div class="sidebar">
+        <div class="logo">📦 ANALOG</div>
+        <div class="menu">
+            <div class="menu-item active" onclick="mudarAba('dashboard')">📊 Dashboard</div>
+            <div class="menu-item" onclick="mudarAba('termicas')">🌡️ Térmicas</div>
+            <div class="menu-item" onclick="mudarAba('colaboradores')">👥 Colaboradores</div>
+            <div class="menu-item" onclick="mudarAba('clientes')">🏢 Clientes</div>
+            <div class="menu-item" onclick="mudarAba('rastreio')">🚚 Entregas & Rastreio</div>
         </div>
-        <nav class="flex-1 py-4 space-y-1">
-            <button onclick="mudarAba('dashboard')" class="menu-item w-full flex items-center px-6 py-3 hover:bg-blue-600 hover:text-white transition-colors active bg-blue-600 text-white">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                Dashboard
-            </button>
-            <button onclick="mudarAba('termicas')" class="menu-item w-full flex items-center px-6 py-3 hover:bg-blue-600 hover:text-white transition-colors">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                Térmicas
-            </button>
-            <button onclick="mudarAba('colaboradores')" class="menu-item w-full flex items-center px-6 py-3 hover:bg-blue-600 hover:text-white transition-colors">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                Colaboradores
-            </button>
-            <button onclick="mudarAba('clientes')" class="menu-item w-full flex items-center px-6 py-3 hover:bg-blue-600 hover:text-white transition-colors">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                Clientes
-            </button>
-            <button onclick="mudarAba('rastreio')" class="menu-item w-full flex items-center px-6 py-3 hover:bg-blue-600 hover:text-white transition-colors">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                Entregas & Rastreio
-            </button>
-        </nav>
-    </aside>
+    </div>
 
     <!-- Main Content -->
-    <main class="main flex-1 flex flex-col overflow-hidden relative">
-        
-        <!-- Indicador de Carregamento Firebase -->
-        <div id="loading" class="absolute inset-0 bg-white/80 z-50 flex items-center justify-center">
-            <div class="flex flex-col items-center">
-                <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <p class="mt-4 text-slate-600 font-medium">Conectando ao banco de dados...</p>
-            </div>
+    <div class="main">
+        <div class="header">
+            <h2 id="titulo-pagina">Dashboard</h2>
+            <div style="color: #64748b;">Data Atual: <span id="data-atual"></span></div>
         </div>
 
-        <header class="h-20 bg-white border-b border-slate-200 flex justify-between items-center px-8 shadow-sm">
-            <h2 id="titulo-pagina" class="text-2xl font-bold text-slate-800">Dashboard</h2>
-            <div class="flex items-center gap-6">
-                <!-- Botões de Exportação/Impressão -->
-                <div class="export-btns flex gap-3">
-                    <button onclick="exportarExcel()" class="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg hover:bg-emerald-200 font-medium transition-colors text-sm" title="Exportar para Excel">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Excel
-                    </button>
-                    <button onclick="window.print()" class="flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200 font-medium transition-colors text-sm" title="Imprimir / PDF">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                        PDF
-                    </button>
-                </div>
-                <div class="text-sm font-medium text-slate-500">Data Atual: <span id="data-atual" class="text-slate-800"></span></div>
-            </div>
-        </header>
-
-        <div class="flex-1 overflow-y-auto p-8">
-            
+        <div class="content">
             <!-- Dashboard View -->
             <div id="view-dashboard" class="view active">
-                <div class="grid grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-slate-800">
-                        <h4 class="text-sm font-semibold text-slate-500 uppercase">Total de Térmicas</h4>
-                        <p id="dash-total" class="text-3xl font-bold text-slate-800 mt-2">0</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
-                        <h4 class="text-sm font-semibold text-slate-500 uppercase">Disponíveis</h4>
-                        <p id="dash-disp" class="text-3xl font-bold text-emerald-600 mt-2">0</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-blue-500">
-                        <h4 class="text-sm font-semibold text-slate-500 uppercase">Em Uso</h4>
-                        <p id="dash-uso" class="text-3xl font-bold text-blue-600 mt-2">0</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-rose-500">
-                        <h4 class="text-sm font-semibold text-slate-500 uppercase">Avariadas</h4>
-                        <p id="dash-ava" class="text-3xl font-bold text-rose-600 mt-2">0</p>
-                    </div>
+                <div class="dash-cards">
+                    <div class="dash-card"><h4>Total de Térmicas</h4><p id="dash-total">0</p></div>
+                    <div class="dash-card" style="border-color: var(--success);"><h4>Disponíveis</h4><p id="dash-disp">0</p></div>
+                    <div class="dash-card" style="border-color: var(--primary);"><h4>Em Uso</h4><p id="dash-uso">0</p></div>
+                    <div class="dash-card" style="border-color: var(--danger);"><h4>Avariadas</h4><p id="dash-ava">0</p></div>
                 </div>
             </div>
 
             <!-- Térmicas View -->
             <div id="view-termicas" class="view">
-                <div class="controls flex justify-between items-center mb-6">
-                    <button onclick="abrirModalTermica()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold shadow-sm transition-colors flex items-center gap-2">
-                        + Nova Térmica
-                    </button>
+                <div class="controls">
+                    <input type="text" class="search-bar" placeholder="Buscar térmica...">
+                    <button class="btn btn-primary" onclick="abrirModalTermica()">+ Nova Térmica</button>
                 </div>
-                <div class="card bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left" id="table-export-termicas">
-                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
-                            <tr><th class="px-6 py-4">Código</th><th class="px-6 py-4">Status</th><th class="px-6 py-4 acoes">Ações</th></tr>
-                        </thead>
-                        <tbody id="tabela-termicas" class="divide-y divide-slate-200 text-sm"></tbody>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Código</th><th>Status</th><th>Ações</th></tr></thead>
+                        <tbody id="tabela-termicas"></tbody>
                     </table>
                 </div>
             </div>
 
             <!-- Clientes View -->
             <div id="view-clientes" class="view">
-                <div class="controls flex justify-between items-center mb-6">
-                    <button onclick="abrirModalCliente()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold shadow-sm transition-colors flex items-center gap-2">
-                        + Novo Cliente
-                    </button>
+                <div class="controls">
+                    <input type="text" class="search-bar" placeholder="Buscar cliente...">
+                    <button class="btn btn-primary" onclick="abrirModalCliente()">+ Novo Cliente</button>
                 </div>
-                <div class="card bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left" id="table-export-clientes">
-                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
-                            <tr><th class="px-6 py-4">Empresa/Nome</th><th class="px-6 py-4">Endereço</th><th class="px-6 py-4">Contato</th><th class="px-6 py-4 acoes">Ações</th></tr>
-                        </thead>
-                        <tbody id="tabela-clientes" class="divide-y divide-slate-200 text-sm"></tbody>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Empresa/Nome</th><th>Endereço</th><th>Contato</th><th>Ações</th></tr></thead>
+                        <tbody id="tabela-clientes"></tbody>
                     </table>
                 </div>
             </div>
 
             <!-- Colaboradores View -->
             <div id="view-colaboradores" class="view">
-                <div class="controls flex justify-between items-center mb-6">
-                    <button onclick="abrirModalColab()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold shadow-sm transition-colors flex items-center gap-2">
-                        + Novo Colaborador
-                    </button>
+                <div class="controls">
+                    <input type="text" class="search-bar" placeholder="Buscar colaborador...">
+                    <button class="btn btn-primary" onclick="abrirModalColab()">+ Novo Colaborador</button>
                 </div>
-                <div class="card bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left" id="table-export-colaboradores">
-                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
-                            <tr><th class="px-6 py-4">Nome</th><th class="px-6 py-4">Placa/Veículo</th><th class="px-6 py-4">Telefone</th><th class="px-6 py-4 acoes">Ações</th></tr>
-                        </thead>
-                        <tbody id="tabela-colaboradores" class="divide-y divide-slate-200 text-sm"></tbody>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Nome</th><th>Placa/Veículo</th><th>Telefone</th><th>Ações</th></tr></thead>
+                        <tbody id="tabela-colaboradores"></tbody>
                     </table>
                 </div>
             </div>
 
             <!-- Rastreio View -->
             <div id="view-rastreio" class="view">
-                <div class="controls flex justify-between items-center mb-6">
-                    <button onclick="abrirModalAlocacao()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold shadow-sm transition-colors flex items-center gap-2">
-                        + Alocar Térmica (Saída)
-                    </button>
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="abrirModalAlocacao()">+ Alocar Térmica (Saída)</button>
                 </div>
-                <div class="card bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left" id="table-export-rastreios">
-                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
-                            <tr><th class="px-6 py-4">Térmica</th><th class="px-6 py-4">Motorista</th><th class="px-6 py-4">Cliente</th><th class="px-6 py-4">Data Saída</th><th class="px-6 py-4 acoes">Ações</th></tr>
-                        </thead>
-                        <tbody id="tabela-rastreio" class="divide-y divide-slate-200 text-sm"></tbody>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Térmica</th><th>Motorista</th><th>Cliente</th><th>Data Saída</th><th>Ações</th></tr></thead>
+                        <tbody id="tabela-rastreio"></tbody>
                     </table>
                 </div>
             </div>
-
         </div>
-    </main>
+    </div>
 
-    <!-- Modais Genéricos -->
     <!-- Modal Cliente -->
-    <div id="modal-cliente" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50">
-        <div class="bg-white p-8 rounded-xl w-full max-w-md shadow-2xl">
-            <h3 id="modal-cliente-titulo" class="text-xl font-bold text-slate-800 mb-6">Novo Cliente</h3>
-            <div class="space-y-4">
-                <div><label class="block text-sm font-semibold text-slate-600 mb-1">Empresa/Nome</label><input type="text" id="cli-nome" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                <div><label class="block text-sm font-semibold text-slate-600 mb-1">Endereço</label><input type="text" id="cli-end" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                <div><label class="block text-sm font-semibold text-slate-600 mb-1">Contato</label><input type="text" id="cli-contato" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
-            </div>
-            <div class="flex justify-end gap-3 mt-8">
-                <button onclick="fecharModal('modal-cliente')" class="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                <button onclick="salvarCliente()" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">Salvar</button>
+    <div class="modal" id="modal-cliente">
+        <div class="modal-content">
+            <h3 id="modal-cliente-titulo">Novo Cliente</h3>
+            <div class="form-group"><label>Empresa/Nome</label><input type="text" id="cli-nome"></div>
+            <div class="form-group"><label>Endereço</label><input type="text" id="cli-end"></div>
+            <div class="form-group"><label>Contato</label><input type="text" id="cli-contato"></div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="fecharModal('modal-cliente')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarCliente()">Salvar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal Térmica -->
-    <div id="modal-termica" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50">
-        <div class="bg-white p-8 rounded-xl w-full max-w-md shadow-2xl">
-            <h3 id="modal-termica-titulo" class="text-xl font-bold text-slate-800 mb-6">Nova Térmica</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">Código (Prefixo Fixo + Número)</label>
-                    <div class="flex gap-2">
-                        <input type="text" value="ANALOG-" disabled class="w-24 p-2.5 bg-slate-100 border border-slate-300 rounded-lg text-slate-500 font-semibold text-center">
-                        <input type="number" id="term-numero" class="flex-1 p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">Status</label>
-                    <select id="term-status" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                        <option value="Disponível">Disponível</option>
-                        <option value="Em Uso">Em Uso</option>
-                        <option value="Avariada">Avariada</option>
-                    </select>
+    <div class="modal" id="modal-termica">
+        <div class="modal-content">
+            <h3 id="modal-termica-titulo">Nova Térmica</h3>
+            <div class="form-group">
+                <label>Código (Prefixo Fixo + Número)</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" value="ANALOG-" disabled style="width: 100px; background:#f1f5f9;">
+                    <input type="number" id="term-numero" style="flex:1;">
                 </div>
             </div>
-            <div class="flex justify-end gap-3 mt-8">
-                <button onclick="fecharModal('modal-termica')" class="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                <button onclick="salvarTermica()" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">Salvar</button>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="term-status">
+                    <option value="Disponível">Disponível</option>
+                    <option value="Em Uso">Em Uso</option>
+                    <option value="Avariada">Avariada</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="fecharModal('modal-termica')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarTermica()">Salvar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal Colaborador -->
-    <div id="modal-colab" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50">
-        <div class="bg-white p-8 rounded-xl w-full max-w-md shadow-2xl">
-            <h3 id="modal-colab-titulo" class="text-xl font-bold text-slate-800 mb-6">Novo Colaborador</h3>
-            <div class="space-y-4">
-                <div><label class="block text-sm font-semibold text-slate-600 mb-1">Nome</label><input type="text" id="colab-nome" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                <div><label class="block text-sm font-semibold text-slate-600 mb-1">Placa/Veículo</label><input type="text" id="colab-veiculo" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                <div><label class="block text-sm font-semibold text-slate-600 mb-1">Telefone</label><input type="text" id="colab-tel" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div>
-            </div>
-            <div class="flex justify-end gap-3 mt-8">
-                <button onclick="fecharModal('modal-colab')" class="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                <button onclick="salvarColab()" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">Salvar</button>
+    <div class="modal" id="modal-colab">
+        <div class="modal-content">
+            <h3 id="modal-colab-titulo">Novo Colaborador</h3>
+            <div class="form-group"><label>Nome</label><input type="text" id="colab-nome"></div>
+            <div class="form-group"><label>Placa/Veículo</label><input type="text" id="colab-veiculo"></div>
+            <div class="form-group"><label>Telefone</label><input type="text" id="colab-tel"></div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="fecharModal('modal-colab')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarColab()">Salvar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal Alocação -->
-    <div id="modal-alocacao" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50">
-        <div class="bg-white p-8 rounded-xl w-full max-w-md shadow-2xl">
-            <h3 class="text-xl font-bold text-slate-800 mb-6">Registrar Saída</h3>
-            <div class="space-y-4">
-                <div><label class="block text-sm font-semibold text-slate-600 mb-1">Térmica (Disponíveis)</label><select id="aloc-termica" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"></select></div>
-                <div><label class="block text-sm font-semibold text-slate-600 mb-1">Motorista</label><select id="aloc-colab" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"></select></div>
-                <div><label class="block text-sm font-semibold text-slate-600 mb-1">Cliente Destino</label><select id="aloc-cliente" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"></select></div>
+    <div class="modal" id="modal-alocacao">
+        <div class="modal-content">
+            <h3>Registrar Saída de Térmica</h3>
+            <div class="form-group">
+                <label>Térmica (Apenas Disponíveis)</label>
+                <select id="aloc-termica"></select>
             </div>
-            <div class="flex justify-end gap-3 mt-8">
-                <button onclick="fecharModal('modal-alocacao')" class="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                <button onclick="salvarAlocacao()" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">Confirmar Saída</button>
+            <div class="form-group">
+                <label>Motorista/Colaborador</label>
+                <select id="aloc-colab"></select>
+            </div>
+            <div class="form-group">
+                <label>Cliente Destino</label>
+                <select id="aloc-cliente"></select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="fecharModal('modal-alocacao')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarAlocacao()">Confirmar Saída</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase Script v9 Modular -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    <script>
+        // Data Local
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        document.getElementById('data-atual').innerText = hoje;
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyA9HLPcKSvrhbjUNj4kPSmpMZVUAf5os5I",
-            authDomain: "controle-de-ter.firebaseapp.com",
-            projectId: "controle-de-ter",
-            storageBucket: "controle-de-ter.firebasestorage.app",
-            messagingSenderId: "762391553662",
-            appId: "1:762391553662:web:0aab6851ce7e8d6d60da2f"
-        };
+        // Dados base (LocalStorage)
+        let clientes = JSON.parse(localStorage.getItem('analog_clientes')) || [];
+        let termicas = JSON.parse(localStorage.getItem('analog_termicas')) || [];
+        let colaboradores = JSON.parse(localStorage.getItem('analog_colaboradores')) || [];
+        let rastreios = JSON.parse(localStorage.getItem('analog_rastreios')) || [];
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        // Controle de Edição
+        let idEdicaoCliente = null;
+        let idEdicaoTermica = null;
+        let idEdicaoColab = null;
 
-        // Login anônimo automático
-        signInAnonymously(auth).then(() => {
-            document.getElementById('loading').style.display = 'none';
-        }).catch((error) => {
-            alert("Erro de conexão. Verifique as regras do Firebase.");
-            console.error(error);
-        });
-
-        // Variáveis de Estado
-        window.clientes = [];
-        window.termicas = [];
-        window.colaboradores = [];
-        window.rastreios = [];
-        
-        window.idEdicaoCliente = null;
-        window.idEdicaoTermica = null;
-        window.idEdicaoColab = null;
-
-        // Escutadores Real-time
-        onSnapshot(collection(db, "clientes"), (snap) => {
-            window.clientes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            atualizarTelas();
-        });
-        onSnapshot(collection(db, "termicas"), (snap) => {
-            window.termicas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            atualizarTelas();
-        });
-        onSnapshot(collection(db, "colaboradores"), (snap) => {
-            window.colaboradores = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            atualizarTelas();
-        });
-        onSnapshot(collection(db, "rastreios"), (snap) => {
-            // Ordenar por data de forma decrescente (mais recentes primeiro)
-            window.rastreios = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-                .sort((a,b) => b.timestamp - a.timestamp);
-            atualizarTelas();
-        });
-
-        // Lógica de Abas
-        window.currentView = 'dashboard';
-        window.mudarAba = function(abaId) {
-            window.currentView = abaId;
+        // Sistema de Abas
+        function mudarAba(abaId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.menu-item').forEach(m => { m.classList.remove('active', 'bg-blue-600', 'text-white'); });
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
             document.getElementById(`view-${abaId}`).classList.add('active');
-            event.currentTarget.classList.add('active', 'bg-blue-600', 'text-white');
+            event.currentTarget.classList.add('active');
             
-            const titulos = { 'dashboard': 'Dashboard', 'termicas': 'Térmicas', 'clientes': 'Clientes', 'colaboradores': 'Colaboradores', 'rastreio': 'Entregas e Rastreio' };
+            const titulos = { 'dashboard': 'Dashboard', 'termicas': 'Gestão de Térmicas', 'clientes': 'Gestão de Clientes', 'colaboradores': 'Gestão de Colaboradores', 'rastreio': 'Entregas e Rastreio' };
             document.getElementById('titulo-pagina').innerText = titulos[abaId];
-        };
+            
+            atualizarTelas();
+        }
 
-        // ================= CLIENTES =================
-        window.abrirModalCliente = function(id = null) {
-            window.idEdicaoCliente = id;
+        // ====================== CLIENTES ======================
+        function abrirModalCliente(id = null) {
+            idEdicaoCliente = id;
             if (id) {
-                const c = window.clientes.find(x => x.id === id);
+                const c = clientes.find(x => x.id === id);
                 document.getElementById('cli-nome').value = c.nome;
                 document.getElementById('cli-end').value = c.endereco;
                 document.getElementById('cli-contato').value = c.contato;
@@ -358,71 +287,94 @@
                 document.getElementById('cli-contato').value = '';
                 document.getElementById('modal-cliente-titulo').innerText = "Novo Cliente";
             }
-            document.getElementById('modal-cliente').style.display = 'flex';
+            document.getElementById('modal-cliente').classList.add('active');
         }
 
-        window.salvarCliente = async function() {
+        function salvarCliente() {
             const nome = document.getElementById('cli-nome').value;
             const end = document.getElementById('cli-end').value;
             const contato = document.getElementById('cli-contato').value;
+            
             if(!nome) return alert('Nome é obrigatório');
 
-            if (window.idEdicaoCliente) {
-                await updateDoc(doc(db, "clientes", window.idEdicaoCliente), { nome, endereco: end, contato });
+            if (idEdicaoCliente) {
+                const idx = clientes.findIndex(x => x.id === idEdicaoCliente);
+                clientes[idx] = { ...clientes[idx], nome, endereco: end, contato };
             } else {
-                await addDoc(collection(db, "clientes"), { nome, endereco: end, contato });
+                clientes.push({ id: Date.now(), nome, endereco: end, contato });
             }
+            salvarDados();
             fecharModal('modal-cliente');
+            atualizarTelas();
         }
 
-        window.excluirCliente = async function(id) {
-            if(confirm("Excluir cliente?")) await deleteDoc(doc(db, "clientes", id));
+        function excluirCliente(id) {
+            if(confirm("Tem certeza que deseja excluir este cliente?")) {
+                clientes = clientes.filter(x => x.id !== id);
+                salvarDados();
+                atualizarTelas();
+            }
         }
 
-        // ================= TÉRMICAS =================
-        window.abrirModalTermica = function(id = null) {
-            window.idEdicaoTermica = id;
+        // ====================== TÉRMICAS ======================
+        function sugerirNumeroTermica() {
+            if (termicas.length === 0) return 1000;
+            const numeros = termicas.map(t => parseInt(t.codigo.replace('ANALOG-', '')));
+            return Math.max(...numeros) + 1;
+        }
+
+        function abrirModalTermica(id = null) {
+            idEdicaoTermica = id;
             const inputNum = document.getElementById('term-numero');
+            
             if (id) {
-                const t = window.termicas.find(x => x.id === id);
+                const t = termicas.find(x => x.id === id);
                 inputNum.value = t.codigo.replace('ANALOG-', '');
-                inputNum.disabled = true;
+                inputNum.disabled = true; // Não deixa mudar o código na edição
                 document.getElementById('term-status').value = t.status;
-                document.getElementById('modal-termica-titulo').innerText = "Editar Térmica";
+                document.getElementById('modal-termica-titulo').innerText = "Editar Térmica (Alterar Status)";
             } else {
-                let max = window.termicas.length === 0 ? 1000 : Math.max(...window.termicas.map(t => parseInt(t.codigo.replace('ANALOG-','')))) + 1;
-                inputNum.value = max;
+                inputNum.value = sugerirNumeroTermica();
                 inputNum.disabled = false;
                 document.getElementById('term-status').value = 'Disponível';
                 document.getElementById('modal-termica-titulo').innerText = "Nova Térmica";
             }
-            document.getElementById('modal-termica').style.display = 'flex';
+            document.getElementById('modal-termica').classList.add('active');
         }
 
-        window.salvarTermica = async function() {
+        function salvarTermica() {
             const num = document.getElementById('term-numero').value;
             const status = document.getElementById('term-status').value;
-            const codigo = `ANALOG-${num}`;
+            const codigoStr = `ANALOG-${num}`;
 
-            if (!window.idEdicaoTermica && window.termicas.some(t => t.codigo === codigo)) return alert('Código já existe!');
-
-            if (window.idEdicaoTermica) {
-                await updateDoc(doc(db, "termicas", window.idEdicaoTermica), { status });
-            } else {
-                await addDoc(collection(db, "termicas"), { codigo, status });
+            if (!idEdicaoTermica && termicas.some(t => t.codigo === codigoStr)) {
+                return alert('Este código já existe!');
             }
+
+            if (idEdicaoTermica) {
+                const idx = termicas.findIndex(x => x.id === idEdicaoTermica);
+                termicas[idx].status = status;
+            } else {
+                termicas.push({ id: Date.now(), codigo: codigoStr, status });
+            }
+            salvarDados();
             fecharModal('modal-termica');
+            atualizarTelas();
         }
 
-        window.excluirTermica = async function(id) {
-            if(confirm("Excluir térmica?")) await deleteDoc(doc(db, "termicas", id));
+        function excluirTermica(id) {
+            if(confirm("Tem certeza que deseja excluir esta térmica?")) {
+                termicas = termicas.filter(x => x.id !== id);
+                salvarDados();
+                atualizarTelas();
+            }
         }
 
-        // ================= COLABORADORES =================
-        window.abrirModalColab = function(id = null) {
-            window.idEdicaoColab = id;
+        // ====================== COLABORADORES ======================
+        function abrirModalColab(id = null) {
+            idEdicaoColab = id;
             if (id) {
-                const c = window.colaboradores.find(x => x.id === id);
+                const c = colaboradores.find(x => x.id === id);
                 document.getElementById('colab-nome').value = c.nome;
                 document.getElementById('colab-veiculo').value = c.veiculo;
                 document.getElementById('colab-tel').value = c.telefone;
@@ -433,127 +385,137 @@
                 document.getElementById('colab-tel').value = '';
                 document.getElementById('modal-colab-titulo').innerText = "Novo Colaborador";
             }
-            document.getElementById('modal-colab').style.display = 'flex';
+            document.getElementById('modal-colab').classList.add('active');
         }
 
-        window.salvarColab = async function() {
+        function salvarColab() {
             const nome = document.getElementById('colab-nome').value;
             const veiculo = document.getElementById('colab-veiculo').value;
             const telefone = document.getElementById('colab-tel').value;
+            
             if(!nome) return alert('Nome é obrigatório');
 
-            if (window.idEdicaoColab) {
-                await updateDoc(doc(db, "colaboradores", window.idEdicaoColab), { nome, veiculo, telefone });
+            if (idEdicaoColab) {
+                const idx = colaboradores.findIndex(x => x.id === idEdicaoColab);
+                colaboradores[idx] = { ...colaboradores[idx], nome, veiculo, telefone };
             } else {
-                await addDoc(collection(db, "colaboradores"), { nome, veiculo, telefone });
+                colaboradores.push({ id: Date.now(), nome, veiculo, telefone });
             }
+            salvarDados();
             fecharModal('modal-colab');
+            atualizarTelas();
         }
 
-        window.excluirColab = async function(id) {
-            if(confirm("Excluir colaborador?")) await deleteDoc(doc(db, "colaboradores", id));
+        function excluirColab(id) {
+            if(confirm("Excluir colaborador?")) {
+                colaboradores = colaboradores.filter(x => x.id !== id);
+                salvarDados();
+                atualizarTelas();
+            }
         }
 
-        // ================= RASTREIO =================
-        window.abrirModalAlocacao = function() {
-            const disp = window.termicas.filter(t => t.status === 'Disponível');
-            if(disp.length === 0) return alert("Nenhuma térmica disponível!");
-            if(window.colaboradores.length === 0) return alert("Cadastre um colaborador primeiro!");
-            if(window.clientes.length === 0) return alert("Cadastre um cliente primeiro!");
-
-            document.getElementById('aloc-termica').innerHTML = disp.map(t => `<option value="${t.id}">${t.codigo}</option>`).join('');
-            document.getElementById('aloc-colab').innerHTML = window.colaboradores.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-            document.getElementById('aloc-cliente').innerHTML = window.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        // ====================== RASTREIO ======================
+        function abrirModalAlocacao() {
+            const selTermica = document.getElementById('aloc-termica');
+            const selColab = document.getElementById('aloc-colab');
+            const selCliente = document.getElementById('aloc-cliente');
             
-            document.getElementById('modal-alocacao').style.display = 'flex';
+            selTermica.innerHTML = termicas.filter(t => t.status === 'Disponível').map(t => `<option value="${t.id}">${t.codigo}</option>`).join('');
+            selColab.innerHTML = colaboradores.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+            selCliente.innerHTML = clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+            
+            if(!selTermica.innerHTML) return alert('Nenhuma térmica Disponível no momento!');
+            if(!selColab.innerHTML) return alert('Cadastre um colaborador primeiro!');
+            if(!selCliente.innerHTML) return alert('Cadastre um cliente primeiro!');
+
+            document.getElementById('modal-alocacao').classList.add('active');
         }
 
-        window.salvarAlocacao = async function() {
+        function salvarAlocacao() {
             const idTerm = document.getElementById('aloc-termica').value;
             const idColab = document.getElementById('aloc-colab').value;
             const idCli = document.getElementById('aloc-cliente').value;
 
-            const tInfo = window.termicas.find(t => t.id === idTerm);
-            const dataHora = new Date();
+            // Muda status da térmica
+            const tIdx = termicas.findIndex(t => t.id == idTerm);
+            termicas[tIdx].status = 'Em Uso';
 
-            await updateDoc(doc(db, "termicas", idTerm), { status: 'Em Uso' });
-            await addDoc(collection(db, "rastreios"), {
+            rastreios.push({
+                id: Date.now(),
                 termica_id: idTerm,
-                codigo: tInfo.codigo,
-                colab_nome: window.colaboradores.find(c => c.id === idColab).nome,
-                cliente_nome: window.clientes.find(c => c.id === idCli).nome,
-                data_saida: dataHora.toLocaleString('pt-BR'),
-                timestamp: dataHora.getTime()
+                codigo: termicas[tIdx].codigo,
+                colab_nome: colaboradores.find(c => c.id == idColab).nome,
+                cliente_nome: clientes.find(c => c.id == idCli).nome,
+                data_saida: new Date().toLocaleString('pt-BR')
             });
+
+            salvarDados();
             fecharModal('modal-alocacao');
+            atualizarTelas();
         }
 
-        window.registrarRetorno = async function(idRastreio, idTermica) {
-            if(confirm("Confirmar retorno ao galpão?")) {
-                await updateDoc(doc(db, "termicas", idTermica), { status: 'Disponível' });
-                await deleteDoc(doc(db, "rastreios", idRastreio));
+        function registrarRetorno(idRastreio, idTermica) {
+            if(confirm("Confirmar o retorno desta térmica ao galpão?")) {
+                rastreios = rastreios.filter(r => r.id !== idRastreio);
+                const tIdx = termicas.findIndex(t => t.id == idTermica);
+                if(tIdx > -1) termicas[tIdx].status = 'Disponível';
+                salvarDados();
+                atualizarTelas();
             }
         }
 
-        window.excluirRastreio = async function(idRastreio, idTermica) {
-            if(confirm("EXCLUIR o rastreio? A térmica voltará a ficar disponível.")) {
-                await updateDoc(doc(db, "termicas", idTermica), { status: 'Disponível' });
-                await deleteDoc(doc(db, "rastreios", idRastreio));
-            }
+        // ====================== UTILITÁRIOS ======================
+        function fecharModal(id) {
+            document.getElementById(id).classList.remove('active');
         }
 
-        // ================= UTILITÁRIOS =================
-        window.fecharModal = function(id) { document.getElementById(id).style.display = 'none'; }
-        
-        window.exportarExcel = function() {
-            let tableId = "";
-            let nomeArq = "";
-            if(window.currentView === 'termicas') { tableId = "table-export-termicas"; nomeArq = "Termicas.xlsx"; }
-            else if(window.currentView === 'clientes') { tableId = "table-export-clientes"; nomeArq = "Clientes.xlsx"; }
-            else if(window.currentView === 'colaboradores') { tableId = "table-export-colaboradores"; nomeArq = "Colaboradores.xlsx"; }
-            else if(window.currentView === 'rastreio') { tableId = "table-export-rastreios"; nomeArq = "Rastreios.xlsx"; }
-            else return alert("Abra a aba que deseja exportar!");
-
-            let wb = XLSX.utils.table_to_book(document.getElementById(tableId), {sheet:"Dados"});
-            XLSX.writeFile(wb, nomeArq);
+        function salvarDados() {
+            localStorage.setItem('analog_clientes', JSON.stringify(clientes));
+            localStorage.setItem('analog_termicas', JSON.stringify(termicas));
+            localStorage.setItem('analog_colaboradores', JSON.stringify(colaboradores));
+            localStorage.setItem('analog_rastreios', JSON.stringify(rastreios));
         }
 
-        function getBadge(s) {
-            if(s==='Disponível') return `<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">Disponível</span>`;
-            if(s==='Em Uso') return `<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">Em Uso</span>`;
-            return `<span class="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-bold">Avariada</span>`;
+        function getBadge(status) {
+            if(status === 'Disponível') return `<span class="badge badge-disponivel">Disponível</span>`;
+            if(status === 'Em Uso') return `<span class="badge badge-uso">Em Uso</span>`;
+            return `<span class="badge badge-avariada">Avariada</span>`;
         }
 
         function atualizarTelas() {
-            // Dashboard
-            document.getElementById('dash-total').innerText = window.termicas.length;
-            document.getElementById('dash-disp').innerText = window.termicas.filter(t => t.status === 'Disponível').length;
-            document.getElementById('dash-uso').innerText = window.termicas.filter(t => t.status === 'Em Uso').length;
-            document.getElementById('dash-ava').innerText = window.termicas.filter(t => t.status === 'Avariada').length;
-
             // Clientes
-            const tblCli = document.getElementById('tabela-clientes');
-            if(window.clientes.length===0) tblCli.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-400">Nenhum cliente cadastrado</td></tr>`;
-            else tblCli.innerHTML = window.clientes.map(c => `<tr><td class="px-6 py-4 font-medium text-slate-800">${c.nome}</td><td class="px-6 py-4">${c.endereco}</td><td class="px-6 py-4">${c.contato}</td><td class="px-6 py-4 acoes flex gap-2"><button class="btn-edit p-1.5 rounded text-slate-400" onclick="abrirModalCliente('${c.id}')"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button><button class="btn-lixeira p-1.5 rounded text-slate-400" onclick="excluirCliente('${c.id}')"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td></tr>`).join('');
+            document.getElementById('tabela-clientes').innerHTML = clientes.map(c => `
+                <tr><td>${c.nome}</td><td>${c.endereco}</td><td>${c.contato}</td>
+                <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalCliente(${c.id})">✏️</button><button style="color:var(--danger)" onclick="excluirCliente(${c.id})">🗑️</button></td></tr>
+            `).join('');
 
             // Térmicas
-            const tblTerm = document.getElementById('tabela-termicas');
-            if(window.termicas.length===0) tblTerm.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-slate-400">Nenhuma térmica cadastrada</td></tr>`;
-            else tblTerm.innerHTML = window.termicas.map(t => `<tr><td class="px-6 py-4 font-bold text-slate-800">${t.codigo}</td><td class="px-6 py-4">${getBadge(t.status)}</td><td class="px-6 py-4 acoes flex gap-2"><button class="btn-edit p-1.5 rounded text-slate-400" onclick="abrirModalTermica('${t.id}')"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button><button class="btn-lixeira p-1.5 rounded text-slate-400" onclick="excluirTermica('${t.id}')"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td></tr>`).join('');
+            document.getElementById('tabela-termicas').innerHTML = termicas.map(t => `
+                <tr><td><strong>${t.codigo}</strong></td><td>${getBadge(t.status)}</td>
+                <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalTermica(${t.id})">✏️</button><button style="color:var(--danger)" onclick="excluirTermica(${t.id})">🗑️</button></td></tr>
+            `).join('');
 
             // Colaboradores
-            const tblColab = document.getElementById('tabela-colaboradores');
-            if(window.colaboradores.length===0) tblColab.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-400">Nenhum colaborador cadastrado</td></tr>`;
-            else tblColab.innerHTML = window.colaboradores.map(c => `<tr><td class="px-6 py-4 font-medium text-slate-800">${c.nome}</td><td class="px-6 py-4">${c.veiculo}</td><td class="px-6 py-4">${c.telefone}</td><td class="px-6 py-4 acoes flex gap-2"><button class="btn-edit p-1.5 rounded text-slate-400" onclick="abrirModalColab('${c.id}')"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button><button class="btn-lixeira p-1.5 rounded text-slate-400" onclick="excluirColab('${c.id}')"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td></tr>`).join('');
+            document.getElementById('tabela-colaboradores').innerHTML = colaboradores.map(c => `
+                <tr><td>${c.nome}</td><td>${c.veiculo}</td><td>${c.telefone}</td>
+                <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalColab(${c.id})">✏️</button><button style="color:var(--danger)" onclick="excluirColab(${c.id})">🗑️</button></td></tr>
+            `).join('');
 
             // Rastreio
-            const tblRast = document.getElementById('tabela-rastreio');
-            if(window.rastreios.length===0) tblRast.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">Nenhum rastreio em andamento</td></tr>`;
-            else tblRast.innerHTML = window.rastreios.map(r => `<tr><td class="px-6 py-4 font-bold text-slate-800">${r.codigo}</td><td class="px-6 py-4">${r.colab_nome}</td><td class="px-6 py-4">${r.cliente_nome}</td><td class="px-6 py-4">${r.data_saida}</td><td class="px-6 py-4 acoes flex gap-2"><button class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-semibold shadow-sm transition-colors" onclick="registrarRetorno('${r.id}', '${r.termica_id}')">Baixa (Retornou)</button><button class="btn-lixeira p-1.5 rounded text-slate-400" title="Cancelar/Excluir" onclick="excluirRastreio('${r.id}', '${r.termica_id}')"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td></tr>`).join('');
+            document.getElementById('tabela-rastreio').innerHTML = rastreios.map(r => `
+                <tr><td><strong>${r.codigo}</strong></td><td>${r.colab_nome}</td><td>${r.cliente_nome}</td><td>${r.data_saida}</td>
+                <td class="acoes"><button class="btn btn-primary" style="font-size:0.8rem; padding:5px 10px; color:white; border-radius:4px;" onclick="registrarRetorno(${r.id}, ${r.termica_id})">Baixa (Retornou)</button></td></tr>
+            `).join('');
+
+            // Dashboard
+            document.getElementById('dash-total').innerText = termicas.length;
+            document.getElementById('dash-disp').innerText = termicas.filter(t => t.status === 'Disponível').length;
+            document.getElementById('dash-uso').innerText = termicas.filter(t => t.status === 'Em Uso').length;
+            document.getElementById('dash-ava').innerText = termicas.filter(t => t.status === 'Avariada').length;
         }
 
-        // Data Local
-        document.getElementById('data-atual').innerText = new Date().toLocaleDateString('pt-BR');
+        // Init
+        atualizarTelas();
     </script>
 </body>
 </html>
