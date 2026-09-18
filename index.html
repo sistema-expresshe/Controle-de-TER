@@ -74,8 +74,8 @@
         .badge-transito { background-color: #fef08a; color: #854d0e; }
         .badge-concluido { background-color: #e2e8f0; color: #475569; }
 
-        /* Modals */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+        /* Modals - CORREÇÃO 2: z-index alterado para 2500 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 2500; }
         .modal.active { display: flex; }
         .modal-content { background: white; padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-content h3 { margin-bottom: 20px; color: var(--bg-darker); }
@@ -336,24 +336,32 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configuração de ambiente dinâmico
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'analog-app-local';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { 
-            /* Fallback mock in case env is missing */ 
+        const appId = 'analog-app-local';
+        
+        // Objeto de configuração (Insira os dados do seu Firebase quando tiver)
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_AQUI",
+            authDomain: "SEU_DOMINIO_AQUI.firebaseapp.com",
+            projectId: "SEU_PROJECT_ID_AQUI",
+            storageBucket: "SEU_BUCKET_AQUI.appspot.com",
+            messagingSenderId: "SEU_SENDER_ID_AQUI",
+            appId: "SEU_APP_ID_AQUI"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+        
         let userId = null;
+        let isLocalMode = false; // Flag para fallback caso a key seja inválida
 
         // Data Atual UI
         document.getElementById('data-atual').innerText = new Date().toLocaleDateString('pt-BR');
 
-        // Estruturas de Dados em Memória (Sincronizadas com Firebase)
+        // Estruturas de Dados em Memória
         let clientes = [];
         let termicas = [];
         let tamanhos = [];
@@ -377,16 +385,25 @@
         // --- Autenticação e Carregamento ---
         async function initApp() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
                 userId = auth.currentUser.uid;
                 iniciarSincronizacao();
             } catch (error) {
-                console.error("Erro de Autenticação", error);
-                window.mostrarAlerta("Erro ao conectar ao banco de dados.");
+                console.warn("Modo Local Ativado: O Firebase retornou erro (provavelmente credenciais fictícias).", error);
+                // Remove a tela de carregamento
+                document.getElementById('loading-overlay').style.display = 'none';
+                
+                // Ativa o modo sem internet/sem nuvem
+                isLocalMode = true; 
+                
+                // Popula com dados mockados para o preview
+                tamanhos = [{id:'1', descricao:'Pequena (15L)'}, {id:'2', descricao:'Média (30L)'}, {id:'3', descricao:'Grande (50L)'}];
+                termicas = [{id:'t1', codigo:'ANALOG-1', tamanho:'Média (30L)', status:'Disponível'}];
+                clientes = [{id:'c1', nome:'Cliente Demonstração', endereco:'Rua Fictícia, 123', contato:'(11) 99999-9999'}];
+                colaboradores = [{id:'col1', nome:'João Motorista', veiculo:'ABC-1234', telefone:'(11) 98888-8888'}];
+                
+                window.mostrarAlerta("Sistema Offline: Como as chaves do Firebase são fictícias, ativamos o Modo Demonstração. As informações não serão salvas na nuvem.");
+                atualizarTelas();
             }
         }
 
@@ -403,48 +420,22 @@
                 }
             }
 
-            // Clientes
-            onSnapshot(getColRef('clientes'), (snap) => {
-                clientes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                atualizarTelas(); checkLoaded();
-            }, (e) => console.error(e));
+            onSnapshot(getColRef('clientes'), (snap) => { clientes = snap.docs.map(d => ({ id: d.id, ...d.data() })); atualizarTelas(); checkLoaded(); }, (e) => console.error(e));
+            onSnapshot(getColRef('colaboradores'), (snap) => { colaboradores = snap.docs.map(d => ({ id: d.id, ...d.data() })); atualizarTelas(); checkLoaded(); }, (e) => console.error(e));
+            onSnapshot(getColRef('rastreios'), (snap) => { rastreios = snap.docs.map(d => ({ id: d.id, ...d.data() })); atualizarTelas(); checkLoaded(); }, (e) => console.error(e));
+            onSnapshot(getColRef('termicas'), (snap) => { termicas = snap.docs.map(d => ({ id: d.id, ...d.data() })); atualizarTelas(); checkLoaded(); }, (e) => console.error(e));
 
-            // Colaboradores
-            onSnapshot(getColRef('colaboradores'), (snap) => {
-                colaboradores = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                atualizarTelas(); checkLoaded();
-            }, (e) => console.error(e));
-
-            // Rastreios
-            onSnapshot(getColRef('rastreios'), (snap) => {
-                rastreios = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                atualizarTelas(); checkLoaded();
-            }, (e) => console.error(e));
-
-            // Térmicas
-            onSnapshot(getColRef('termicas'), (snap) => {
-                termicas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                atualizarTelas(); checkLoaded();
-            }, (e) => console.error(e));
-
-            // Tamanhos
             let tamanhosIniciados = false;
             onSnapshot(getColRef('tamanhos'), async (snap) => {
                 if (snap.empty && !tamanhosIniciados) {
-                    // Seed inicial
                     const defaults = ['Pequena (15L)', 'Média (30L)', 'Grande (50L)', 'Gigante (100L)', 'Personalizado / Outro'];
-                    for (const desc of defaults) {
-                        await addDoc(getColRef('tamanhos'), { descricao: desc });
-                    }
+                    for (const desc of defaults) { await addDoc(getColRef('tamanhos'), { descricao: desc }); }
                 }
                 tamanhosIniciados = true;
                 tamanhos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 atualizarTelas(); checkLoaded();
             }, (e) => console.error(e));
         }
-
-        // Inicializa o App
-        initApp();
 
         // --- Utilitários de Interface (Globais) ---
         window.mostrarAlerta = function(msg) {
@@ -464,9 +455,7 @@
             window.fecharModal('modal-confirm');
         });
 
-        window.fecharModal = function(id) {
-            document.getElementById(id).classList.remove('active');
-        }
+        window.fecharModal = function(id) { document.getElementById(id).classList.remove('active'); }
 
         window.mudarAba = function(abaId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -474,9 +463,7 @@
             document.getElementById(`view-${abaId}`).classList.add('active');
             
             const menus = document.querySelectorAll('.menu-item');
-            menus.forEach(m => {
-                if(m.getAttribute('onclick').includes(abaId)) m.classList.add('active');
-            });
+            menus.forEach(m => { if(m.getAttribute('onclick').includes(abaId)) m.classList.add('active'); });
             
             const titulos = { 'dashboard': 'Dashboard', 'termicas': 'Gestão de Térmicas', 'tamanhos': 'Gestão de Tamanhos', 'clientes': 'Gestão de Clientes', 'colaboradores': 'Gestão de Colaboradores', 'rastreio': 'Entregas e Rastreio' };
             document.getElementById('titulo-pagina').innerText = titulos[abaId];
@@ -487,47 +474,53 @@
             idEdicaoCliente = id;
             if (id) {
                 const c = clientes.find(x => x.id === id);
-                document.getElementById('cli-nome').value = c.nome;
-                document.getElementById('cli-end').value = c.endereco;
-                document.getElementById('cli-contato').value = c.contato;
+                document.getElementById('cli-nome').value = c.nome; document.getElementById('cli-end').value = c.endereco; document.getElementById('cli-contato').value = c.contato;
                 document.getElementById('modal-cliente-titulo').innerText = "Editar Cliente";
             } else {
-                document.getElementById('cli-nome').value = '';
-                document.getElementById('cli-end').value = '';
-                document.getElementById('cli-contato').value = '';
+                document.getElementById('cli-nome').value = ''; document.getElementById('cli-end').value = ''; document.getElementById('cli-contato').value = '';
                 document.getElementById('modal-cliente-titulo').innerText = "Novo Cliente";
             }
             document.getElementById('modal-cliente').classList.add('active');
         }
 
         window.salvarCliente = async function() {
-            if(!userId) return;
             const nome = document.getElementById('cli-nome').value.trim();
             const end = document.getElementById('cli-end').value.trim();
             const contato = document.getElementById('cli-contato').value.trim();
             
             if(!nome) return window.mostrarAlerta('O campo Nome da Empresa/Cliente é obrigatório.');
 
-            try {
-                if (idEdicaoCliente) {
-                    await updateDoc(getDocRef('clientes', idEdicaoCliente), { nome, endereco: end, contato });
+            if(isLocalMode) {
+                if(idEdicaoCliente) {
+                    const c = clientes.find(x => x.id === idEdicaoCliente);
+                    if(c) { c.nome = nome; c.endereco = end; c.contato = contato; }
                 } else {
-                    await addDoc(getColRef('clientes'), { nome, endereco: end, contato });
+                    clientes.push({ id: Date.now().toString(), nome, endereco: end, contato });
                 }
+                window.fecharModal('modal-cliente');
+                return atualizarTelas();
+            }
+
+            if(!userId) return;
+            try {
+                if (idEdicaoCliente) { await updateDoc(getDocRef('clientes', idEdicaoCliente), { nome, endereco: end, contato }); } 
+                else { await addDoc(getColRef('clientes'), { nome, endereco: end, contato }); }
                 window.fecharModal('modal-cliente');
             } catch(e) { window.mostrarAlerta("Erro ao salvar cliente."); }
         }
 
         window.excluirCliente = function(id) {
             window.mostrarConfirmacao("Tem certeza que deseja excluir este cliente? O histórico de alocação dele também será removido.", async () => {
+                if(isLocalMode) {
+                    clientes = clientes.filter(c => c.id !== id);
+                    rastreios = rastreios.filter(r => r.cliente_id !== id);
+                    return atualizarTelas();
+                }
                 if(!userId) return;
                 try {
                     await deleteDoc(getDocRef('clientes', id));
-                    // Apaga Rastreios Vinculados
                     const rastreiosVinculados = rastreios.filter(r => r.cliente_id === id);
-                    for (const r of rastreiosVinculados) {
-                        await deleteDoc(getDocRef('rastreios', r.id));
-                    }
+                    for (const r of rastreiosVinculados) { await deleteDoc(getDocRef('rastreios', r.id)); }
                 } catch(e) { window.mostrarAlerta("Erro ao excluir."); }
             });
         }
@@ -547,22 +540,31 @@
         }
 
         window.salvarTamanho = async function() {
-            if(!userId) return;
             const desc = document.getElementById('tam-desc').value.trim();
             if(!desc) return window.mostrarAlerta('A descrição é obrigatória.');
 
-            try {
-                if (idEdicaoTamanho) {
-                    await updateDoc(getDocRef('tamanhos', idEdicaoTamanho), { descricao: desc });
+            if(isLocalMode) {
+                if(idEdicaoTamanho) {
+                    const t = tamanhos.find(x => x.id === idEdicaoTamanho);
+                    if(t) t.descricao = desc;
                 } else {
-                    await addDoc(getColRef('tamanhos'), { descricao: desc });
+                    tamanhos.push({ id: Date.now().toString(), descricao: desc });
                 }
+                window.fecharModal('modal-tamanho');
+                return atualizarTelas();
+            }
+
+            if(!userId) return;
+            try {
+                if (idEdicaoTamanho) { await updateDoc(getDocRef('tamanhos', idEdicaoTamanho), { descricao: desc }); } 
+                else { await addDoc(getColRef('tamanhos'), { descricao: desc }); }
                 window.fecharModal('modal-tamanho');
             } catch(e) { window.mostrarAlerta("Erro ao salvar."); }
         }
 
         window.excluirTamanho = function(id) {
             window.mostrarConfirmacao("Excluir este tamanho?", async () => {
+                if(isLocalMode) { tamanhos = tamanhos.filter(t => t.id !== id); return atualizarTelas(); }
                 if(!userId) return;
                 await deleteDoc(getDocRef('tamanhos', id));
             });
@@ -578,15 +580,13 @@
             
             if (id) {
                 const t = termicas.find(x => x.id === id);
-                inputNum.value = t.codigo.replace('ANALOG-', '');
-                inputNum.disabled = true; 
-                selectTamanho.value = t.tamanho || 'Média (30L)';
+                inputNum.value = t.codigo.replace('ANALOG-', ''); inputNum.disabled = true; 
+                selectTamanho.value = t.tamanho || (tamanhos.length > 0 ? tamanhos[0].descricao : '');
                 document.getElementById('term-status').value = t.status;
                 document.getElementById('modal-termica-titulo').innerText = "Editar Térmica";
             } else {
-                const maior = termicas.reduce((max, t) => Math.max(max, parseInt(t.codigo.replace('ANALOG-','')) || 999), 999);
-                inputNum.value = maior + 1;
-                inputNum.disabled = false;
+                const maior = termicas.reduce((max, t) => Math.max(max, parseInt(t.codigo.replace('ANALOG-','')) || 0), 0);
+                inputNum.value = maior + 1; inputNum.disabled = false;
                 if(tamanhos.length > 0) selectTamanho.value = tamanhos[0].descricao;
                 document.getElementById('term-status').value = 'Disponível';
                 document.getElementById('modal-termica-titulo').innerText = "Nova Térmica";
@@ -595,7 +595,6 @@
         }
 
         window.salvarTermica = async function() {
-            if(!userId) return;
             const num = document.getElementById('term-numero').value;
             const tamanho = document.getElementById('term-tamanho').value;
             const status = document.getElementById('term-status').value;
@@ -607,33 +606,46 @@
                 return window.mostrarAlerta('Este código de térmica já existe!');
             }
 
+            if(isLocalMode) {
+                if (idEdicaoTermica) {
+                    const t = termicas.find(x => x.id === idEdicaoTermica);
+                    t.status = status; t.tamanho = tamanho;
+                    if (status === 'Disponível') {
+                        const rastreiosAbertos = rastreios.filter(r => r.termica_id === idEdicaoTermica && r.status === 'Em Trânsito');
+                        rastreiosAbertos.forEach(r => { r.status = 'Devolvida'; r.data_retorno = new Date().toLocaleString('pt-BR'); });
+                    }
+                } else {
+                    termicas.push({ id: Date.now().toString(), codigo: codigoStr, tamanho, status });
+                }
+                window.fecharModal('modal-termica');
+                return atualizarTelas();
+            }
+
+            if(!userId) return;
             try {
                 if (idEdicaoTermica) {
                     await updateDoc(getDocRef('termicas', idEdicaoTermica), { status, tamanho });
-                    
-                    // Se mudou pra Disponível manualmente, baixar rastreios abertos
                     if (status === 'Disponível') {
                         const rastreiosAbertos = rastreios.filter(r => r.termica_id === idEdicaoTermica && r.status === 'Em Trânsito');
-                        for (const r of rastreiosAbertos) {
-                            await updateDoc(getDocRef('rastreios', r.id), { status: 'Devolvida', data_retorno: new Date().toLocaleString('pt-BR') });
-                        }
+                        for (const r of rastreiosAbertos) { await updateDoc(getDocRef('rastreios', r.id), { status: 'Devolvida', data_retorno: new Date().toLocaleString('pt-BR') }); }
                     }
-                } else {
-                    await addDoc(getColRef('termicas'), { codigo: codigoStr, tamanho, status });
-                }
+                } else { await addDoc(getColRef('termicas'), { codigo: codigoStr, tamanho, status }); }
                 window.fecharModal('modal-termica');
             } catch(e) { window.mostrarAlerta("Erro ao salvar."); }
         }
 
         window.excluirTermica = function(id) {
             window.mostrarConfirmacao("Excluir esta térmica? O histórico de alocação também será removido.", async () => {
+                if(isLocalMode) {
+                    termicas = termicas.filter(t => t.id !== id);
+                    rastreios = rastreios.filter(r => r.termica_id !== id);
+                    return atualizarTelas();
+                }
                 if(!userId) return;
                 try {
                     await deleteDoc(getDocRef('termicas', id));
                     const rastreiosVinculados = rastreios.filter(r => r.termica_id === id);
-                    for (const r of rastreiosVinculados) {
-                        await deleteDoc(getDocRef('rastreios', r.id));
-                    }
+                    for (const r of rastreiosVinculados) { await deleteDoc(getDocRef('rastreios', r.id)); }
                 } catch(e) { window.mostrarAlerta("Erro ao excluir."); }
             });
         }
@@ -643,46 +655,52 @@
             idEdicaoColab = id;
             if (id) {
                 const c = colaboradores.find(x => x.id === id);
-                document.getElementById('colab-nome').value = c.nome;
-                document.getElementById('colab-veiculo').value = c.veiculo;
-                document.getElementById('colab-tel').value = c.telefone;
+                document.getElementById('colab-nome').value = c.nome; document.getElementById('colab-veiculo').value = c.veiculo; document.getElementById('colab-tel').value = c.telefone;
                 document.getElementById('modal-colab-titulo').innerText = "Editar Colaborador";
             } else {
-                document.getElementById('colab-nome').value = '';
-                document.getElementById('colab-veiculo').value = '';
-                document.getElementById('colab-tel').value = '';
+                document.getElementById('colab-nome').value = ''; document.getElementById('colab-veiculo').value = ''; document.getElementById('colab-tel').value = '';
                 document.getElementById('modal-colab-titulo').innerText = "Novo Colaborador";
             }
             document.getElementById('modal-colab').classList.add('active');
         }
 
         window.salvarColab = async function() {
-            if(!userId) return;
             const nome = document.getElementById('colab-nome').value.trim();
             const veiculo = document.getElementById('colab-veiculo').value.trim();
             const telefone = document.getElementById('colab-tel').value.trim();
-            
             if(!nome) return window.mostrarAlerta('O nome do colaborador é obrigatório.');
 
-            try {
+            if(isLocalMode) {
                 if (idEdicaoColab) {
-                    await updateDoc(getDocRef('colaboradores', idEdicaoColab), { nome, veiculo, telefone });
+                    const c = colaboradores.find(x => x.id === idEdicaoColab);
+                    if(c) { c.nome = nome; c.veiculo = veiculo; c.telefone = telefone; }
                 } else {
-                    await addDoc(getColRef('colaboradores'), { nome, veiculo, telefone });
+                    colaboradores.push({ id: Date.now().toString(), nome, veiculo, telefone });
                 }
+                window.fecharModal('modal-colab');
+                return atualizarTelas();
+            }
+
+            if(!userId) return;
+            try {
+                if (idEdicaoColab) { await updateDoc(getDocRef('colaboradores', idEdicaoColab), { nome, veiculo, telefone }); } 
+                else { await addDoc(getColRef('colaboradores'), { nome, veiculo, telefone }); }
                 window.fecharModal('modal-colab');
             } catch(e) { window.mostrarAlerta("Erro ao salvar."); }
         }
 
         window.excluirColab = function(id) {
             window.mostrarConfirmacao("Excluir colaborador? Históricos vinculados serão removidos.", async () => {
+                if(isLocalMode) {
+                    colaboradores = colaboradores.filter(c => c.id !== id);
+                    rastreios = rastreios.filter(r => r.colab_id !== id);
+                    return atualizarTelas();
+                }
                 if(!userId) return;
                 try {
                     await deleteDoc(getDocRef('colaboradores', id));
                     const rastreiosVinculados = rastreios.filter(r => r.colab_id === id);
-                    for (const r of rastreiosVinculados) {
-                        await deleteDoc(getDocRef('rastreios', r.id));
-                    }
+                    for (const r of rastreiosVinculados) { await deleteDoc(getDocRef('rastreios', r.id)); }
                 } catch(e) { window.mostrarAlerta("Erro ao excluir."); }
             });
         }
@@ -705,41 +723,53 @@
         }
 
         window.salvarAlocacao = async function() {
-            if(!userId) return;
             const idTerm = document.getElementById('aloc-termica').value;
             const idColab = document.getElementById('aloc-colab').value;
             const idCli = document.getElementById('aloc-cliente').value;
 
-            try {
-                // Atualiza térmica para "Em Uso"
-                await updateDoc(getDocRef('termicas', idTerm), { status: 'Em Uso' });
+            if(isLocalMode) {
+                const termInfo = termicas.find(t => t.id === idTerm);
+                if(termInfo) termInfo.status = 'Em Uso';
                 
-                // Cria registro de Rastreio com referências
-                await addDoc(getColRef('rastreios'), {
-                    termica_id: idTerm,
-                    codigo: termicas.find(t => t.id === idTerm).codigo,
-                    colab_id: idColab,
-                    colab_nome: colaboradores.find(c => c.id === idColab).nome,
-                    cliente_id: idCli,
-                    cliente_nome: clientes.find(c => c.id === idCli).nome,
-                    data_saida: new Date().toLocaleString('pt-BR'),
-                    data_retorno: '',
-                    status: 'Em Trânsito',
-                    criado_em: Date.now() // para ordenação
+                rastreios.push({
+                    id: Date.now().toString(),
+                    termica_id: idTerm, codigo: termInfo.codigo,
+                    colab_id: idColab, colab_nome: colaboradores.find(c => c.id === idColab).nome,
+                    cliente_id: idCli, cliente_nome: clientes.find(c => c.id === idCli).nome,
+                    data_saida: new Date().toLocaleString('pt-BR'), data_retorno: '',
+                    status: 'Em Trânsito', criado_em: Date.now()
                 });
-                
+                window.fecharModal('modal-alocacao');
+                return atualizarTelas();
+            }
+
+            if(!userId) return;
+            try {
+                await updateDoc(getDocRef('termicas', idTerm), { status: 'Em Uso' });
+                await addDoc(getColRef('rastreios'), {
+                    termica_id: idTerm, codigo: termicas.find(t => t.id === idTerm).codigo,
+                    colab_id: idColab, colab_nome: colaboradores.find(c => c.id === idColab).nome,
+                    cliente_id: idCli, cliente_nome: clientes.find(c => c.id === idCli).nome,
+                    data_saida: new Date().toLocaleString('pt-BR'), data_retorno: '',
+                    status: 'Em Trânsito', criado_em: Date.now()
+                });
                 window.fecharModal('modal-alocacao');
             } catch(e) { window.mostrarAlerta("Erro ao registrar saída."); }
         }
 
         window.registrarRetorno = function(idRastreio, idTermica) {
             window.mostrarConfirmacao("Confirmar o retorno desta térmica ao galpão?", async () => {
+                if(isLocalMode) {
+                    const r = rastreios.find(x => x.id === idRastreio);
+                    if(r) { r.status = 'Devolvida'; r.data_retorno = new Date().toLocaleString('pt-BR'); }
+                    const t = termicas.find(x => x.id === idTermica);
+                    if(t) t.status = 'Disponível';
+                    return atualizarTelas();
+                }
+
                 if(!userId) return;
                 try {
-                    await updateDoc(getDocRef('rastreios', idRastreio), {
-                        status: 'Devolvida',
-                        data_retorno: new Date().toLocaleString('pt-BR')
-                    });
+                    await updateDoc(getDocRef('rastreios', idRastreio), { status: 'Devolvida', data_retorno: new Date().toLocaleString('pt-BR') });
                     await updateDoc(getDocRef('termicas', idTermica), { status: 'Disponível' });
                 } catch(e) { window.mostrarAlerta("Erro ao registrar retorno."); }
             });
@@ -747,10 +777,18 @@
 
         window.excluirRastreio = function(idRastreio, idTermica, statusAtual) {
             window.mostrarConfirmacao("Deseja apagar permanentemente este registro de rastreio (Lixeira)?", async () => {
+                if(isLocalMode) {
+                    rastreios = rastreios.filter(r => r.id !== idRastreio);
+                    if(statusAtual === 'Em Trânsito') {
+                        const t = termicas.find(x => x.id === idTermica);
+                        if(t) t.status = 'Disponível';
+                    }
+                    return atualizarTelas();
+                }
+
                 if(!userId) return;
                 try {
                     await deleteDoc(getDocRef('rastreios', idRastreio));
-                    // Se apagou algo que estava "Em Trânsito", liberamos a térmica de volta
                     if(statusAtual === 'Em Trânsito') {
                         const termicaNoBd = termicas.find(t => t.id === idTermica);
                         if(termicaNoBd) await updateDoc(getDocRef('termicas', idTermica), { status: 'Disponível' });
@@ -786,31 +824,26 @@
         }
 
         function atualizarTelas() {
-            // Clientes
             document.getElementById('tabela-clientes').innerHTML = clientes.map(c => `
                 <tr><td>${c.nome}</td><td>${c.endereco}</td><td>${c.contato}</td>
                 <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalCliente('${c.id}')">✏️</button><button style="color:var(--danger)" onclick="excluirCliente('${c.id}')">🗑️</button></td></tr>
             `).join('') || `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Nenhum cliente cadastrado.</td></tr>`;
 
-            // Tamanhos
             document.getElementById('tabela-tamanhos').innerHTML = tamanhos.map(t => `
                 <tr><td>${t.descricao}</td>
                 <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalTamanho('${t.id}')">✏️</button><button style="color:var(--danger)" onclick="excluirTamanho('${t.id}')">🗑️</button></td></tr>
             `).join('') || `<tr><td colspan="2" style="text-align:center; color:#94a3b8;">Nenhum tamanho cadastrado.</td></tr>`;
 
-            // Térmicas
             document.getElementById('tabela-termicas').innerHTML = termicas.map(t => `
                 <tr><td><strong>${t.codigo}</strong></td><td>${t.tamanho || '-'}</td><td>${getBadgeTermica(t.status)}</td>
                 <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalTermica('${t.id}')">✏️</button><button style="color:var(--danger)" onclick="excluirTermica('${t.id}')">🗑️</button></td></tr>
             `).join('') || `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Nenhuma térmica cadastrada.</td></tr>`;
 
-            // Colaboradores
             document.getElementById('tabela-colaboradores').innerHTML = colaboradores.map(c => `
                 <tr><td>${c.nome}</td><td>${c.veiculo}</td><td>${c.telefone}</td>
                 <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalColab('${c.id}')">✏️</button><button style="color:var(--danger)" onclick="excluirColab('${c.id}')">🗑️</button></td></tr>
             `).join('') || `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Nenhum colaborador cadastrado.</td></tr>`;
 
-            // Rastreio (Ordenado)
             const rastreiosOrd = [...rastreios].sort((a, b) => {
                 const sA = a.status || 'Em Trânsito'; const sB = b.status || 'Em Trânsito';
                 if(sA === 'Em Trânsito' && sB !== 'Em Trânsito') return -1;
@@ -839,12 +872,14 @@
                 </tr>`;
             }).join('') || `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">Nenhum histórico de alocação.</td></tr>`;
 
-            // Dashboard
             document.getElementById('dash-total').innerText = termicas.length;
             document.getElementById('dash-disp').innerText = termicas.filter(t => t.status === 'Disponível').length;
             document.getElementById('dash-uso').innerText = termicas.filter(t => t.status === 'Em Uso').length;
             document.getElementById('dash-ava').innerText = termicas.filter(t => t.status === 'Avariada').length;
         }
+
+        // Inicializa a conexão após montar as funções
+        initApp();
     </script>
 </body>
 </html>
