@@ -14,6 +14,7 @@
             --bg-light: #f1f5f9;
             --border: #e2e8f0;
             --success: #22c55e;
+            --success-hover: #16a34a;
             --warning: #eab308;
             --danger: #ef4444;
         }
@@ -40,41 +41,55 @@
         .view.active { display: block; }
 
         /* Controls (Search & Add) */
-        .controls { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
+        .controls-right { display: flex; gap: 10px; }
         .search-bar { padding: 10px; border: 1px solid var(--border); border-radius: 5px; width: 300px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
         .btn-primary { background-color: var(--primary); color: white; }
         .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-success { background-color: var(--success); color: white; }
+        .btn-success:hover { background-color: var(--success-hover); }
+        .btn-cancel { background-color: var(--border); color: #333; }
+        .btn-cancel:hover { background-color: #cbd5e1; }
 
         /* Tables */
         .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); }
         th { background-color: #f8fafc; font-size: 0.85rem; color: #64748b; text-transform: uppercase; }
-        .acoes button { background: none; border: none; cursor: pointer; font-size: 1.2rem; margin: 0 5px; }
+        .acoes button { background: none; border: none; cursor: pointer; font-size: 1.2rem; margin: 0 5px; transition: transform 0.1s; }
+        .acoes button:hover { transform: scale(1.1); }
 
         /* Badges */
         .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; }
         .badge-disponivel { background-color: #dcfce7; color: #166534; }
         .badge-uso { background-color: #dbeafe; color: #1e40af; }
         .badge-avariada { background-color: #fee2e2; color: #991b1b; }
+        .badge-transito { background-color: #fef08a; color: #854d0e; }
+        .badge-concluido { background-color: #e2e8f0; color: #475569; }
 
         /* Modals */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
         .modal.active { display: flex; }
-        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 400px; }
-        .modal-content h3 { margin-bottom: 20px; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-content h3 { margin-bottom: 20px; color: var(--bg-darker); }
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-        .btn-cancel { background-color: var(--border); color: #333; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold; color: #475569; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; outline: none; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
 
         /* Dashboard Cards */
         .dash-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
         .dash-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); }
         .dash-card h4 { color: #64748b; font-size: 0.9rem; }
         .dash-card p { font-size: 1.8rem; font-weight: bold; margin-top: 10px; }
+        
+        /* Centralizado para Modais de Alerta/Confirmação */
+        .modal-center-text { text-align: center; }
+        .modal-center-text p { margin-bottom: 20px; color: #333; line-height: 1.5; }
+        .modal-center-text .modal-actions { justify-content: center; }
     </style>
 </head>
 <body>
@@ -85,6 +100,7 @@
         <div class="menu">
             <div class="menu-item active" onclick="mudarAba('dashboard')">📊 Dashboard</div>
             <div class="menu-item" onclick="mudarAba('termicas')">🌡️ Térmicas</div>
+            <div class="menu-item" onclick="mudarAba('tamanhos')">📏 Tamanhos</div>
             <div class="menu-item" onclick="mudarAba('colaboradores')">👥 Colaboradores</div>
             <div class="menu-item" onclick="mudarAba('clientes')">🏢 Clientes</div>
             <div class="menu-item" onclick="mudarAba('rastreio')">🚚 Entregas & Rastreio</div>
@@ -95,7 +111,7 @@
     <div class="main">
         <div class="header">
             <h2 id="titulo-pagina">Dashboard</h2>
-            <div style="color: #64748b;">Data Atual: <span id="data-atual"></span></div>
+            <div style="color: #64748b; font-weight: 500;">Data Atual: <span id="data-atual"></span></div>
         </div>
 
         <div class="content">
@@ -117,8 +133,22 @@
                 </div>
                 <div class="card">
                     <table>
-                        <thead><tr><th>Código</th><th>Status</th><th>Ações</th></tr></thead>
+                        <thead><tr><th>Código</th><th>Tamanho</th><th>Status</th><th>Ações</th></tr></thead>
                         <tbody id="tabela-termicas"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tamanhos View -->
+            <div id="view-tamanhos" class="view">
+                <div class="controls">
+                    <input type="text" class="search-bar" placeholder="Buscar tamanho...">
+                    <button class="btn btn-primary" onclick="abrirModalTamanho()">+ Novo Tamanho</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead><tr><th>Descrição do Tamanho</th><th>Ações</th></tr></thead>
+                        <tbody id="tabela-tamanhos"></tbody>
                     </table>
                 </div>
             </div>
@@ -154,11 +184,23 @@
             <!-- Rastreio View -->
             <div id="view-rastreio" class="view">
                 <div class="controls">
-                    <button class="btn btn-primary" onclick="abrirModalAlocacao()">+ Alocar Térmica (Saída)</button>
+                    <input type="text" class="search-bar" placeholder="Buscar rastreio...">
+                    <div class="controls-right">
+                        <button class="btn btn-success" onclick="exportarExcel()">📥 Baixar Excel</button>
+                        <button class="btn btn-primary" onclick="abrirModalAlocacao()">+ Alocar Térmica (Saída)</button>
+                    </div>
                 </div>
                 <div class="card">
                     <table>
-                        <thead><tr><th>Térmica</th><th>Motorista</th><th>Cliente</th><th>Data Saída</th><th>Ações</th></tr></thead>
+                        <thead><tr>
+                            <th>Térmica</th>
+                            <th>Motorista</th>
+                            <th>Cliente</th>
+                            <th>Data Saída</th>
+                            <th>Data Retorno</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr></thead>
                         <tbody id="tabela-rastreio"></tbody>
                     </table>
                 </div>
@@ -180,16 +222,33 @@
         </div>
     </div>
 
-    <!-- Modal Térmica -->
+    <!-- Modal Tamanho -->
+    <div class="modal" id="modal-tamanho">
+        <div class="modal-content">
+            <h3 id="modal-tamanho-titulo">Novo Tamanho</h3>
+            <div class="form-group"><label>Descrição (Ex: Média 30L)</label><input type="text" id="tam-desc"></div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="fecharModal('modal-tamanho')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarTamanho()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Térmica (Com Tamanho) -->
     <div class="modal" id="modal-termica">
         <div class="modal-content">
             <h3 id="modal-termica-titulo">Nova Térmica</h3>
             <div class="form-group">
                 <label>Código (Prefixo Fixo + Número)</label>
                 <div style="display:flex; gap:10px;">
-                    <input type="text" value="ANALOG-" disabled style="width: 100px; background:#f1f5f9;">
+                    <input type="text" value="ANALOG-" disabled style="width: 100px; background:#f1f5f9; color:#64748b; cursor:not-allowed;">
                     <input type="number" id="term-numero" style="flex:1;">
                 </div>
+            </div>
+            <div class="form-group">
+                <label>Tamanho</label>
+                <select id="term-tamanho">
+                </select>
             </div>
             <div class="form-group">
                 <label>Status</label>
@@ -243,6 +302,28 @@
         </div>
     </div>
 
+    <!-- Modais Customizados para substituir Alert e Confirm (Melhor UI e evita bloqueio do browser) -->
+    <div class="modal" id="modal-alert">
+        <div class="modal-content modal-center-text" style="width: 320px;">
+            <h3 id="alert-title">Aviso</h3>
+            <p id="alert-msg"></p>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="fecharModal('modal-alert')" style="width: 100%; justify-content: center;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-confirm">
+        <div class="modal-content modal-center-text" style="width: 350px;">
+            <h3>Confirmação</h3>
+            <p id="confirm-msg"></p>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="fecharModal('modal-confirm')">Não, Cancelar</button>
+                <button class="btn btn-primary" id="confirm-btn-action">Sim, Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Data Local
         const hoje = new Date().toLocaleDateString('pt-BR');
@@ -251,22 +332,53 @@
         // Dados base (LocalStorage)
         let clientes = JSON.parse(localStorage.getItem('analog_clientes')) || [];
         let termicas = JSON.parse(localStorage.getItem('analog_termicas')) || [];
+        let tamanhos = JSON.parse(localStorage.getItem('analog_tamanhos')) || [
+            { id: 1, descricao: 'Pequena (15L)' },
+            { id: 2, descricao: 'Média (30L)' },
+            { id: 3, descricao: 'Grande (50L)' },
+            { id: 4, descricao: 'Gigante (100L)' },
+            { id: 5, descricao: 'Personalizado / Outro' }
+        ];
         let colaboradores = JSON.parse(localStorage.getItem('analog_colaboradores')) || [];
         let rastreios = JSON.parse(localStorage.getItem('analog_rastreios')) || [];
 
         // Controle de Edição
         let idEdicaoCliente = null;
         let idEdicaoTermica = null;
+        let idEdicaoTamanho = null;
         let idEdicaoColab = null;
 
-        // Sistema de Abas
+        // --- Utilitários de Interface (Substitutos de Alert/Confirm) ---
+        function mostrarAlerta(msg) {
+            document.getElementById('alert-msg').innerText = msg;
+            document.getElementById('modal-alert').classList.add('active');
+        }
+
+        let confirmCallback = null;
+        function mostrarConfirmacao(msg, callback) {
+            document.getElementById('confirm-msg').innerText = msg;
+            confirmCallback = callback;
+            document.getElementById('modal-confirm').classList.add('active');
+        }
+
+        document.getElementById('confirm-btn-action').addEventListener('click', () => {
+            if (confirmCallback) confirmCallback();
+            fecharModal('modal-confirm');
+        });
+
+        // --- Sistema de Abas ---
         function mudarAba(abaId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
             document.getElementById(`view-${abaId}`).classList.add('active');
-            event.currentTarget.classList.add('active');
             
-            const titulos = { 'dashboard': 'Dashboard', 'termicas': 'Gestão de Térmicas', 'clientes': 'Gestão de Clientes', 'colaboradores': 'Gestão de Colaboradores', 'rastreio': 'Entregas e Rastreio' };
+            // Procura o menu-item correspondente e ativa
+            const menus = document.querySelectorAll('.menu-item');
+            menus.forEach(m => {
+                if(m.getAttribute('onclick').includes(abaId)) m.classList.add('active');
+            });
+            
+            const titulos = { 'dashboard': 'Dashboard', 'termicas': 'Gestão de Térmicas', 'tamanhos': 'Gestão de Tamanhos', 'clientes': 'Gestão de Clientes', 'colaboradores': 'Gestão de Colaboradores', 'rastreio': 'Entregas e Rastreio' };
             document.getElementById('titulo-pagina').innerText = titulos[abaId];
             
             atualizarTelas();
@@ -291,11 +403,11 @@
         }
 
         function salvarCliente() {
-            const nome = document.getElementById('cli-nome').value;
-            const end = document.getElementById('cli-end').value;
-            const contato = document.getElementById('cli-contato').value;
+            const nome = document.getElementById('cli-nome').value.trim();
+            const end = document.getElementById('cli-end').value.trim();
+            const contato = document.getElementById('cli-contato').value.trim();
             
-            if(!nome) return alert('Nome é obrigatório');
+            if(!nome) return mostrarAlerta('O campo Nome da Empresa/Cliente é obrigatório.');
 
             if (idEdicaoCliente) {
                 const idx = clientes.findIndex(x => x.id === idEdicaoCliente);
@@ -309,11 +421,48 @@
         }
 
         function excluirCliente(id) {
-            if(confirm("Tem certeza que deseja excluir este cliente?")) {
+            mostrarConfirmacao("Tem certeza que deseja excluir este cliente?", () => {
                 clientes = clientes.filter(x => x.id !== id);
                 salvarDados();
                 atualizarTelas();
+            });
+        }
+
+        // ====================== TAMANHOS ======================
+        function abrirModalTamanho(id = null) {
+            idEdicaoTamanho = id;
+            if (id) {
+                const t = tamanhos.find(x => x.id === id);
+                document.getElementById('tam-desc').value = t.descricao;
+                document.getElementById('modal-tamanho-titulo').innerText = "Editar Tamanho";
+            } else {
+                document.getElementById('tam-desc').value = '';
+                document.getElementById('modal-tamanho-titulo').innerText = "Novo Tamanho";
             }
+            document.getElementById('modal-tamanho').classList.add('active');
+        }
+
+        function salvarTamanho() {
+            const desc = document.getElementById('tam-desc').value.trim();
+            if(!desc) return mostrarAlerta('A descrição do tamanho é obrigatória.');
+
+            if (idEdicaoTamanho) {
+                const idx = tamanhos.findIndex(x => x.id === idEdicaoTamanho);
+                tamanhos[idx].descricao = desc;
+            } else {
+                tamanhos.push({ id: Date.now(), descricao: desc });
+            }
+            salvarDados();
+            fecharModal('modal-tamanho');
+            atualizarTelas();
+        }
+
+        function excluirTamanho(id) {
+            mostrarConfirmacao("Tem certeza que deseja excluir este tamanho?", () => {
+                tamanhos = tamanhos.filter(x => x.id !== id);
+                salvarDados();
+                atualizarTelas();
+            });
         }
 
         // ====================== TÉRMICAS ======================
@@ -326,16 +475,22 @@
         function abrirModalTermica(id = null) {
             idEdicaoTermica = id;
             const inputNum = document.getElementById('term-numero');
+            const selectTamanho = document.getElementById('term-tamanho');
+            
+            // Popula as opções do select de tamanhos com os dados cadastrados
+            selectTamanho.innerHTML = tamanhos.map(t => `<option value="${t.descricao}">${t.descricao}</option>`).join('');
             
             if (id) {
                 const t = termicas.find(x => x.id === id);
                 inputNum.value = t.codigo.replace('ANALOG-', '');
-                inputNum.disabled = true; // Não deixa mudar o código na edição
+                inputNum.disabled = true; 
+                selectTamanho.value = t.tamanho || 'Média (30L)'; // Valor default para compatibilidade antiga
                 document.getElementById('term-status').value = t.status;
-                document.getElementById('modal-termica-titulo').innerText = "Editar Térmica (Alterar Status)";
+                document.getElementById('modal-termica-titulo').innerText = "Editar Térmica";
             } else {
                 inputNum.value = sugerirNumeroTermica();
                 inputNum.disabled = false;
+                selectTamanho.value = 'Média (30L)';
                 document.getElementById('term-status').value = 'Disponível';
                 document.getElementById('modal-termica-titulo').innerText = "Nova Térmica";
             }
@@ -344,18 +499,22 @@
 
         function salvarTermica() {
             const num = document.getElementById('term-numero').value;
+            const tamanho = document.getElementById('term-tamanho').value;
             const status = document.getElementById('term-status').value;
+            
+            if(!num) return mostrarAlerta("Por favor, defina o número da térmica.");
             const codigoStr = `ANALOG-${num}`;
 
             if (!idEdicaoTermica && termicas.some(t => t.codigo === codigoStr)) {
-                return alert('Este código já existe!');
+                return mostrarAlerta('Este código de térmica já existe!');
             }
 
             if (idEdicaoTermica) {
                 const idx = termicas.findIndex(x => x.id === idEdicaoTermica);
                 termicas[idx].status = status;
+                termicas[idx].tamanho = tamanho; // Atualiza tamanho se modificado
             } else {
-                termicas.push({ id: Date.now(), codigo: codigoStr, status });
+                termicas.push({ id: Date.now(), codigo: codigoStr, tamanho, status });
             }
             salvarDados();
             fecharModal('modal-termica');
@@ -363,11 +522,11 @@
         }
 
         function excluirTermica(id) {
-            if(confirm("Tem certeza que deseja excluir esta térmica?")) {
+            mostrarConfirmacao("Tem certeza que deseja excluir esta térmica do sistema?", () => {
                 termicas = termicas.filter(x => x.id !== id);
                 salvarDados();
                 atualizarTelas();
-            }
+            });
         }
 
         // ====================== COLABORADORES ======================
@@ -389,11 +548,11 @@
         }
 
         function salvarColab() {
-            const nome = document.getElementById('colab-nome').value;
-            const veiculo = document.getElementById('colab-veiculo').value;
-            const telefone = document.getElementById('colab-tel').value;
+            const nome = document.getElementById('colab-nome').value.trim();
+            const veiculo = document.getElementById('colab-veiculo').value.trim();
+            const telefone = document.getElementById('colab-tel').value.trim();
             
-            if(!nome) return alert('Nome é obrigatório');
+            if(!nome) return mostrarAlerta('O nome do colaborador é obrigatório.');
 
             if (idEdicaoColab) {
                 const idx = colaboradores.findIndex(x => x.id === idEdicaoColab);
@@ -407,26 +566,26 @@
         }
 
         function excluirColab(id) {
-            if(confirm("Excluir colaborador?")) {
+            mostrarConfirmacao("Excluir este colaborador do cadastro?", () => {
                 colaboradores = colaboradores.filter(x => x.id !== id);
                 salvarDados();
                 atualizarTelas();
-            }
+            });
         }
 
-        // ====================== RASTREIO ======================
+        // ====================== RASTREIO & HISTÓRICO ======================
         function abrirModalAlocacao() {
             const selTermica = document.getElementById('aloc-termica');
             const selColab = document.getElementById('aloc-colab');
             const selCliente = document.getElementById('aloc-cliente');
             
-            selTermica.innerHTML = termicas.filter(t => t.status === 'Disponível').map(t => `<option value="${t.id}">${t.codigo}</option>`).join('');
+            selTermica.innerHTML = termicas.filter(t => t.status === 'Disponível').map(t => `<option value="${t.id}">${t.codigo} - ${t.tamanho || 's/ tamanho'}</option>`).join('');
             selColab.innerHTML = colaboradores.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
             selCliente.innerHTML = clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
             
-            if(!selTermica.innerHTML) return alert('Nenhuma térmica Disponível no momento!');
-            if(!selColab.innerHTML) return alert('Cadastre um colaborador primeiro!');
-            if(!selCliente.innerHTML) return alert('Cadastre um cliente primeiro!');
+            if(!selTermica.innerHTML) return mostrarAlerta('Nenhuma térmica Disponível no momento! Cadastre ou libere uma térmica.');
+            if(!selColab.innerHTML) return mostrarAlerta('Cadastre pelo menos um colaborador (motorista) primeiro!');
+            if(!selCliente.innerHTML) return mostrarAlerta('Cadastre pelo menos um cliente primeiro!');
 
             document.getElementById('modal-alocacao').classList.add('active');
         }
@@ -440,13 +599,16 @@
             const tIdx = termicas.findIndex(t => t.id == idTerm);
             termicas[tIdx].status = 'Em Uso';
 
+            // Registra a saída com status e sem data de retorno ainda
             rastreios.push({
                 id: Date.now(),
                 termica_id: idTerm,
                 codigo: termicas[tIdx].codigo,
                 colab_nome: colaboradores.find(c => c.id == idColab).nome,
                 cliente_nome: clientes.find(c => c.id == idCli).nome,
-                data_saida: new Date().toLocaleString('pt-BR')
+                data_saida: new Date().toLocaleString('pt-BR'),
+                data_retorno: '',
+                status: 'Em Trânsito'
             });
 
             salvarDados();
@@ -455,13 +617,53 @@
         }
 
         function registrarRetorno(idRastreio, idTermica) {
-            if(confirm("Confirmar o retorno desta térmica ao galpão?")) {
-                rastreios = rastreios.filter(r => r.id !== idRastreio);
+            mostrarConfirmacao("Confirmar o retorno desta térmica ao galpão? Ela ficará Disponível novamente.", () => {
+                // Ao invés de deletar, atualizamos o histórico
+                const rIdx = rastreios.findIndex(r => r.id === idRastreio);
+                if(rIdx > -1) {
+                    rastreios[rIdx].status = 'Devolvida';
+                    rastreios[rIdx].data_retorno = new Date().toLocaleString('pt-BR');
+                }
+                
+                // Retorna térmica para disponível
                 const tIdx = termicas.findIndex(t => t.id == idTermica);
                 if(tIdx > -1) termicas[tIdx].status = 'Disponível';
+                
                 salvarDados();
                 atualizarTelas();
-            }
+            });
+        }
+
+        function exportarExcel() {
+            if(rastreios.length === 0) return mostrarAlerta("Não há registros de entregas para exportar.");
+
+            // Adiciona BOM (Byte Order Mark) para excel ler acentuação corretamente em UTF-8
+            let csvContent = "\uFEFF"; 
+            csvContent += "Térmica;Motorista;Cliente;Data Saída;Data Retorno;Status\n";
+
+            // Gera as linhas
+            rastreios.forEach(r => {
+                let statusExib = r.status || 'Em Trânsito'; // fallback
+                let linha = [
+                    r.codigo,
+                    r.colab_nome,
+                    r.cliente_nome,
+                    r.data_saida,
+                    r.data_retorno || 'Pendente',
+                    statusExib
+                ].join(";");
+                csvContent += linha + "\n";
+            });
+
+            // Cria blob e dispara download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Relatorio_Termicas_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // ====================== UTILITÁRIOS ======================
@@ -472,40 +674,75 @@
         function salvarDados() {
             localStorage.setItem('analog_clientes', JSON.stringify(clientes));
             localStorage.setItem('analog_termicas', JSON.stringify(termicas));
+            localStorage.setItem('analog_tamanhos', JSON.stringify(tamanhos));
             localStorage.setItem('analog_colaboradores', JSON.stringify(colaboradores));
             localStorage.setItem('analog_rastreios', JSON.stringify(rastreios));
         }
 
-        function getBadge(status) {
+        function getBadgeTermica(status) {
             if(status === 'Disponível') return `<span class="badge badge-disponivel">Disponível</span>`;
             if(status === 'Em Uso') return `<span class="badge badge-uso">Em Uso</span>`;
             return `<span class="badge badge-avariada">Avariada</span>`;
+        }
+        
+        function getBadgeRastreio(status) {
+            if(!status || status === 'Em Trânsito') return `<span class="badge badge-transito">Em Trânsito</span>`;
+            if(status === 'Devolvida') return `<span class="badge badge-concluido">Devolvida</span>`;
+            return `<span class="badge badge-concluido">${status}</span>`;
         }
 
         function atualizarTelas() {
             // Clientes
             document.getElementById('tabela-clientes').innerHTML = clientes.map(c => `
                 <tr><td>${c.nome}</td><td>${c.endereco}</td><td>${c.contato}</td>
-                <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalCliente(${c.id})">✏️</button><button style="color:var(--danger)" onclick="excluirCliente(${c.id})">🗑️</button></td></tr>
-            `).join('');
+                <td class="acoes"><button style="color:var(--primary)" title="Editar" onclick="abrirModalCliente(${c.id})">✏️</button><button style="color:var(--danger)" title="Excluir" onclick="excluirCliente(${c.id})">🗑️</button></td></tr>
+            `).join('') || `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Nenhum cliente cadastrado.</td></tr>`;
 
-            // Térmicas
+            // Tamanhos
+            document.getElementById('tabela-tamanhos').innerHTML = tamanhos.map(t => `
+                <tr><td>${t.descricao}</td>
+                <td class="acoes"><button style="color:var(--primary)" title="Editar" onclick="abrirModalTamanho(${t.id})">✏️</button><button style="color:var(--danger)" title="Excluir" onclick="excluirTamanho(${t.id})">🗑️</button></td></tr>
+            `).join('') || `<tr><td colspan="2" style="text-align:center; color:#94a3b8;">Nenhum tamanho cadastrado.</td></tr>`;
+
+            // Térmicas (Agora incluindo Tamanho)
             document.getElementById('tabela-termicas').innerHTML = termicas.map(t => `
-                <tr><td><strong>${t.codigo}</strong></td><td>${getBadge(t.status)}</td>
-                <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalTermica(${t.id})">✏️</button><button style="color:var(--danger)" onclick="excluirTermica(${t.id})">🗑️</button></td></tr>
-            `).join('');
+                <tr><td><strong>${t.codigo}</strong></td><td>${t.tamanho || '-'}</td><td>${getBadgeTermica(t.status)}</td>
+                <td class="acoes"><button style="color:var(--primary)" title="Editar" onclick="abrirModalTermica(${t.id})">✏️</button><button style="color:var(--danger)" title="Excluir" onclick="excluirTermica(${t.id})">🗑️</button></td></tr>
+            `).join('') || `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Nenhuma térmica cadastrada.</td></tr>`;
 
             // Colaboradores
             document.getElementById('tabela-colaboradores').innerHTML = colaboradores.map(c => `
                 <tr><td>${c.nome}</td><td>${c.veiculo}</td><td>${c.telefone}</td>
-                <td class="acoes"><button style="color:var(--primary)" onclick="abrirModalColab(${c.id})">✏️</button><button style="color:var(--danger)" onclick="excluirColab(${c.id})">🗑️</button></td></tr>
-            `).join('');
+                <td class="acoes"><button style="color:var(--primary)" title="Editar" onclick="abrirModalColab(${c.id})">✏️</button><button style="color:var(--danger)" title="Excluir" onclick="excluirColab(${c.id})">🗑️</button></td></tr>
+            `).join('') || `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Nenhum colaborador cadastrado.</td></tr>`;
 
-            // Rastreio
-            document.getElementById('tabela-rastreio').innerHTML = rastreios.map(r => `
-                <tr><td><strong>${r.codigo}</strong></td><td>${r.colab_nome}</td><td>${r.cliente_nome}</td><td>${r.data_saida}</td>
-                <td class="acoes"><button class="btn btn-primary" style="font-size:0.8rem; padding:5px 10px; color:white; border-radius:4px;" onclick="registrarRetorno(${r.id}, ${r.termica_id})">Baixa (Retornou)</button></td></tr>
-            `).join('');
+            // Rastreio (Agora com Status e Histórico)
+            // Ordenando rastreios (os 'Em Trânsito' aparecem primeiro, depois por ordem de saída)
+            const rastreiosOrdenados = [...rastreios].sort((a, b) => {
+                const statusA = a.status || 'Em Trânsito';
+                const statusB = b.status || 'Em Trânsito';
+                if(statusA === 'Em Trânsito' && statusB !== 'Em Trânsito') return -1;
+                if(statusA !== 'Em Trânsito' && statusB === 'Em Trânsito') return 1;
+                return b.id - a.id; // mais recentes primeiro dentro do status
+            });
+
+            document.getElementById('tabela-rastreio').innerHTML = rastreiosOrdenados.map(r => {
+                const ehTransito = (!r.status || r.status === 'Em Trânsito');
+                const btnBaixa = ehTransito ? 
+                    `<button class="btn btn-primary" style="font-size:0.8rem; padding:5px 10px;" onclick="registrarRetorno(${r.id}, ${r.termica_id})">Baixa (Retornou)</button>` 
+                    : `<span style="color:#94a3b8; font-size:0.85rem;">Concluído</span>`;
+
+                return `
+                <tr>
+                    <td><strong>${r.codigo}</strong></td>
+                    <td>${r.colab_nome}</td>
+                    <td>${r.cliente_nome}</td>
+                    <td>${r.data_saida}</td>
+                    <td>${r.data_retorno || '-'}</td>
+                    <td>${getBadgeRastreio(r.status)}</td>
+                    <td class="acoes">${btnBaixa}</td>
+                </tr>`;
+            }).join('') || `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">Nenhum histórico de alocação.</td></tr>`;
 
             // Dashboard
             document.getElementById('dash-total').innerText = termicas.length;
